@@ -93,6 +93,31 @@ function groupSources(sources) {
   }, {});
 }
 
+function humanizeMetricLabel(key) {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatMetricValue(value) {
+  if (value === null || value === undefined) return 'none';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+function isComplexMetricValue(value) {
+  return value !== null && typeof value === 'object';
+}
+
+function summarizeMetricValue(value) {
+  if (Array.isArray(value)) return `${value.length} item${value.length === 1 ? '' : 's'}`;
+  if (value && typeof value === 'object') {
+    const fieldCount = Object.keys(value).length;
+    return `${fieldCount} field${fieldCount === 1 ? '' : 's'}`;
+  }
+  return formatMetricValue(value);
+}
+
 function requestId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -333,7 +358,7 @@ function SourceList({ sources, selectedSources, onToggle, onSelectSource }) {
 function SourceViewer({ source, sourceContent, citationResolution }) {
   if (citationResolution) {
     return (
-      <div className="source-viewer" data-highlighted-citation={citationResolution.chunk_id || citationResolution.label}>
+      <div className="source-viewer detail-grid" data-highlighted-citation={citationResolution.chunk_id || citationResolution.label}>
         <div><span>Citation</span><strong>{citationResolution.label}</strong></div>
         <div><span>Evidence</span><strong>{citationResolution.evidence_kind}</strong></div>
         <div><span>File</span><strong>{citationResolution.filename}</strong></div>
@@ -439,9 +464,23 @@ function ResultPanel({ result, recommended, runId, onResolveCitation }) {
       <section>
         <h4>Metrics</h4>
         <div className="metric-grid">
-          {Object.entries(result.metrics).map(([key, value]) => (
-            <div key={key}><span>{key}</span><strong>{String(value)}</strong></div>
-          ))}
+          {Object.entries(result.metrics).map(([key, value]) => {
+            const formattedValue = formatMetricValue(value);
+            const complexMetric = isComplexMetricValue(value);
+            return (
+              <div key={key} className={complexMetric ? 'complex-metric' : undefined}>
+                <span title={key}>{humanizeMetricLabel(key)}</span>
+                {complexMetric ? (
+                  <details>
+                    <summary>{summarizeMetricValue(value)}</summary>
+                    <pre>{formattedValue}</pre>
+                  </details>
+                ) : (
+                  <strong title={formattedValue}>{formattedValue}</strong>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

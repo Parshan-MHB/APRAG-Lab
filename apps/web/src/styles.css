@@ -509,7 +509,7 @@ form > button[type="submit"] {
 
 .detail-grid,
 .metric-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .comparison-grid {
@@ -531,6 +531,62 @@ form > button[type="submit"] {
   gap: 4px;
   min-width: 0;
   padding: 10px;
+}
+
+.detail-grid strong,
+.detail-grid pre,
+.metric-grid strong,
+.metric-grid span,
+.citation-card strong,
+.citation-card span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.metric-grid span {
+  line-height: 1.25;
+}
+
+.metric-grid strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.25;
+  max-width: 100%;
+}
+
+.metric-grid div.complex-metric {
+  grid-column: span 2;
+}
+
+.metric-grid details {
+  max-width: 100%;
+}
+
+.metric-grid summary {
+  color: #17475a;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.metric-grid pre {
+  background: #ffffff;
+  border: 1px solid #d7e1e7;
+  border-radius: 6px;
+  color: #24313a;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 6px 0 0;
+  max-height: 180px;
+  overflow: auto;
+  padding: 8px;
+  white-space: pre-wrap;
+}
+
+.source-viewer {
+  min-width: 0;
 }
 
 .citation-card {
@@ -863,5 +919,9 @@ form > button[type="submit"] {
 
   .result-header {
     flex-direction: column;
+  }
+
+  .metric-grid div.complex-metric {
+    grid-column: auto;
   }
 }
