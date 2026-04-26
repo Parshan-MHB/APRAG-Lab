@@ -1,0 +1,12 @@
+{
+  "name": "aprag-lab-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "smoke": "node main.js --smoke"
+  },
+  "dependencies": {
+    "electron": "^35.0.0"
+  }
+}

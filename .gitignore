@@ -1,0 +1,15 @@
+.DS_Store
+.codex/
+.venv/
+apps/web/dist/
+apps/web/node_modules/
+apps/api/.pytest_cache/
+apps/api/data/
+__pycache__/
+*.pyc
+*.log
+data/*.db
+data/sqlite/*.db
+data/projects/
+data/vector_store/
+data/logs/

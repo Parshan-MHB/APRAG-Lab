@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAGBench Browser Only</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; background: #f6f8fa; color: #17242c; }
+      main { max-width: 980px; margin: 0 auto; padding: 24px; }
+      textarea, input { width: 100%; box-sizing: border-box; border: 1px solid #c8d3da; border-radius: 6px; padding: 10px; }
+      button { border: 1px solid #1d5b79; background: #1d5b79; color: white; border-radius: 6px; padding: 10px 14px; }
+      section { background: white; border: 1px solid #d7e0e6; border-radius: 6px; padding: 16px; margin: 12px 0; }
+      pre { white-space: pre-wrap; background: #f8fafb; padding: 12px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>RAGBench Browser Only</h1>
+      <section>
+        <label>Text or Markdown source</label>
+        <textarea id="source" rows="10">Authentication uses API Gateway and Token Store. Deployment monitoring tracks latency.</textarea>
+      </section>
+      <section>
+        <label>Question</label>
+        <input id="question" value="What handles authentication?" />
+        <p><button id="run" type="button">Run Local Retrieval</button></p>
+      </section>
+      <section>
+        <h2>Result</h2>
+        <pre id="result">Browser-only mode supports text/Markdown keyword retrieval. Media, PDFs, DOCX, local models, vector databases, queues, and persistence require containers.</pre>
+      </section>
+    </main>
+    <script>
+      const stopwords = new Set(['the', 'and', 'what', 'which', 'with', 'does', 'about', 'into']);
+      function terms(text) {
+        return (text.match(/[A-Za-z][A-Za-z0-9_-]+/g) || []).map((t) => t.toLowerCase()).filter((t) => !stopwords.has(t));
+      }
+      document.getElementById('run').addEventListener('click', () => {
+        const source = document.getElementById('source').value;
+        const question = document.getElementById('question').value;
+        const query = new Set(terms(question));
+        const sentences = source.split(/(?<=[.!?])\s+/).filter(Boolean);
+        const ranked = sentences.map((sentence) => {
+          const overlap = terms(sentence).filter((term) => query.has(term)).length;
+          return { sentence, overlap };
+        }).sort((a, b) => b.overlap - a.overlap);
+        const best = ranked.filter((item) => item.overlap > 0).slice(0, 3);
+        document.getElementById('result').textContent = best.length
+          ? `Based on browser-local keyword retrieval:\n${best.map((item, index) => `- ${item.sentence} [browser-source#chunk-${index + 1}]`).join('\n')}`
+          : 'No matching text evidence found in the browser-local source.';
+      });
+    </script>
+  </body>
+</html>

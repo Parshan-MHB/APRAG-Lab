@@ -1,0 +1,167 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATA_DIR=/app/data
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - RAGBENCH_MEDIA_RUNTIME=host
+      - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - QDRANT_URL=http://qdrant:6333
+      - RAGBENCH_PROVIDER_MODE=real
+      - RAGBENCH_MODEL_PROFILE=auto
+      - RAGBENCH_QUEUE_MODE=local
+      - RAGBENCH_VECTOR_STORE=chroma
+      - RAGBENCH_OLLAMA_NUM_PREDICT=512
+      - RAGBENCH_VLM_NUM_PREDICT=256
+      - WORKSPACE_ROOT=/workspace
+    volumes:
+      - ./apps/api:/app
+      - ./data:/app/data
+      - ./:/workspace:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ./apps/api
+    environment:
+      - DATA_DIR=/app/data
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - RAGBENCH_MEDIA_RUNTIME=host
+      - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - QDRANT_URL=http://qdrant:6333
+      - RAGBENCH_PROVIDER_MODE=real
+      - RAGBENCH_MODEL_PROFILE=auto
+      - RAGBENCH_QUEUE_MODE=local
+      - RAGBENCH_VECTOR_STORE=chroma
+      - RAGBENCH_OLLAMA_NUM_PREDICT=512
+      - RAGBENCH_VLM_NUM_PREDICT=256
+      - WORKSPACE_ROOT=/workspace
+    volumes:
+      - ./apps/api:/app
+      - ./data:/app/data
+      - ./:/workspace:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: python -m app.worker local
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  rq-worker:
+    build:
+      context: ./apps/api
+    profiles: ["queue"]
+    environment:
+      - DATA_DIR=/app/data
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - RAGBENCH_MEDIA_RUNTIME=host
+      - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./apps/api:/app
+      - ./data:/app/data
+    command: rq worker ragbench --url redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: ./apps/api
+    profiles: ["queue"]
+    environment:
+      - DATA_DIR=/app/data
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - RAGBENCH_MEDIA_RUNTIME=host
+      - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./apps/api:/app
+      - ./data:/app/data
+    command: celery -A app.worker.celery_app worker --loglevel=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    profiles: ["vector"]
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant:/qdrant/storage
+
+  chroma:
+    image: chromadb/chroma:0.6.3
+    profiles: ["vector"]
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma:/chroma/chroma
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "8083:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE=http://localhost:8000
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  qdrant:
+  chroma:

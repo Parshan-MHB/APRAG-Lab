@@ -1,0 +1,1 @@
+grounding_critic_v1: Use uploaded evidence only, preserve citations, report uncertainty, and follow the bounded tool contract.

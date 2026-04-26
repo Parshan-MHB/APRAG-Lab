@@ -1,0 +1,6 @@
+RAGBench manual test source.
+Decision: the product uses host Ollama for real LLM, VLM, and embedding benchmarks.
+The default models are qwen3:8b for LLM, qwen3-vl:4b for VLM, and bge-m3 for embeddings.
+The system must compare Traditional RAG, Agentic RAG, and Hybrid Graph RAG on the same knowledge base.
+Every factual answer must include citations from uploaded evidence.
+Uploads support text, PDF, DOCX, images, audio, and video.
