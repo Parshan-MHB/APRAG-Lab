@@ -23,6 +23,7 @@ jobs:
       APRAG_VECTOR_STORE: sqlite
       APRAG_MEDIA_RUNTIME: container
       DATA_DIR: /tmp/APRAG-Lab-ci-data
+      WORKSPACE_ROOT: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
