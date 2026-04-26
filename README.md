@@ -1,5 +1,6 @@
 # APRAG-Lab
 
+[![CI](https://github.com/Parshan-MHB/APRAG-Lab/actions/workflows/ci.yml/badge.svg)](https://github.com/Parshan-MHB/APRAG-Lab/actions/workflows/ci.yml)
 ![Local-first](https://img.shields.io/badge/local--first-RAG-0f766e)
 ![Multimodal](https://img.shields.io/badge/multimodal-docs%20%7C%20images%20%7C%20audio%20%7C%20video-2563eb)
 ![Dockerized](https://img.shields.io/badge/dockerized-app%20stack-0ea5e9)
