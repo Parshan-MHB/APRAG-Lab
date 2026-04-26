@@ -119,6 +119,24 @@ def test_project_upload_and_run_text_vertical_slice():
     assert body["traditional_result_id"]
     assert body["agentic_result_id"]
     assert body["hybrid_result_id"]
+    answers = {result["pipeline_type"]: result["answer"] for result in body["results"]}
+    assert len(set(answers.values())) == 3
+    assert answers["traditional"].startswith("Traditional RAG answer")
+    assert answers["agentic"].startswith("Agentic RAG answer")
+    assert answers["hybrid_graph"].startswith("Hybrid Graph RAG answer")
+    strategies = {result["pipeline_type"]: result["metrics"]["collection_strategy"] for result in body["results"]}
+    assert strategies == {
+        "traditional": "fusion_hybrid_search",
+        "agentic": "bounded_agent_tool_collection",
+        "hybrid_graph": "graph_first_relationship_expansion",
+    }
+    technique_sets = {
+        result["pipeline_type"]: set(result["metrics"]["data_collection_techniques"])
+        for result in body["results"]
+    }
+    assert not technique_sets["traditional"].intersection(technique_sets["agentic"])
+    assert not technique_sets["traditional"].intersection(technique_sets["hybrid_graph"])
+    assert not technique_sets["agentic"].intersection(technique_sets["hybrid_graph"])
 
 
 def test_run_without_chunks_returns_controlled_error():
@@ -545,6 +563,8 @@ def test_agentic_pipeline_respects_limits_and_persists_independently():
     assert agentic["metrics"]["retrieval_calls"] <= AGENT_LIMITS["max_retrieval_calls"]
     assert agentic["metrics"]["graph_agent_calls"] <= AGENT_LIMITS["max_graph_agent_calls"]
     assert agentic["metrics"]["specialist_agents_used"] <= AGENT_LIMITS["max_specialist_agents"]
+    assert agentic["metrics"]["collection_strategy"] == "bounded_agent_tool_collection"
+    assert "hybrid_keyword_vector_search" not in agentic["metrics"]["data_collection_techniques"]
     assert traditional["pipeline_type"] == "traditional"
 
 
@@ -559,6 +579,7 @@ def test_agentic_trace_contains_orchestrator_packages_critic_and_final_answer():
 
     steps = [entry["step"] for entry in result["trace"]]
     assert "orchestrator_plan" in steps
+    assert "inspect_retrieved_chunks" in steps
     assert "dispatch_retrieval_agent" in steps
     assert "critic_grounding_check" in steps
     assert "finalize_answer" in steps
@@ -645,6 +666,8 @@ def test_hybrid_pipeline_answer_citations_and_trace():
     assert result["citations"]
     assert result["metrics"]["query_entities_count"] > 0
     assert result["metrics"]["graph_chunks_count"] > 0
+    assert result["metrics"]["collection_strategy"] == "graph_first_relationship_expansion"
+    assert "hybrid_keyword_vector_search" not in result["metrics"]["data_collection_techniques"]
     assert result["metrics"]["grounding_score"] > 0
 
 
@@ -1742,6 +1765,29 @@ def test_epic28_source_upload_is_staged_and_processed_by_worker(monkeypatch):
     project_after = client.get(f"/api/projects/{project['id']}").json()
     assert completed["status"] == "succeeded"
     assert project_after["chunk_count"] == 1
+    monkeypatch.setenv("APRAG_QUEUE_MODE", "inline")
+
+
+def test_queued_benchmark_is_blocked_until_source_upload_finishes(monkeypatch):
+    monkeypatch.setenv("APRAG_QUEUE_MODE", "local")
+    project = client.post("/api/projects", json={"name": "Queued Sources Block Benchmark"}).json()
+    upload = client.post(
+        f"/api/projects/{project['id']}/sources",
+        files={"files": ("auth.txt", b"Authentication uses API Gateway and Token Store.", "text/plain")},
+    ).json()
+
+    blocked = client.post(f"/api/projects/{project['id']}/runs", json={"question": "What does authentication use?"})
+    assert blocked.status_code == 409
+    assert "Source extraction is still processing" in blocked.json()["detail"]
+
+    job = fetch_next_queued_job()
+    assert job["id"] == upload["job_id"]
+    process_job(job)
+    accepted = client.post(f"/api/projects/{project['id']}/runs", json={"question": "What does authentication use?"})
+    assert accepted.status_code == 200
+    assert accepted.json()["job_status"] == "queued"
+    runs = client.get(f"/api/projects/{project['id']}/runs").json()
+    assert runs[0]["job_status"] == "queued"
     monkeypatch.setenv("APRAG_QUEUE_MODE", "inline")
 
 

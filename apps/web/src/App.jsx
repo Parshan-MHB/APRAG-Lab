@@ -837,17 +837,25 @@ function RunHistory({ runs, activeRunId, onOpen }) {
   }
   return (
     <div className="history-list">
-      {runs.map((run) => (
-        <button
-          className={activeRunId === run.id ? 'history-row active' : 'history-row'}
-          key={run.id}
-          onClick={() => onOpen(run.id)}
-          type="button"
-        >
-          <strong>{run.question}</strong>
-          <span>{run.recommendation.recommended_flow} · {run.created_at ? new Date(run.created_at).toLocaleString() : 'saved run'}</span>
-        </button>
-      ))}
+      {runs.map((run) => {
+        const recommendedFlow = run.recommendation?.recommended_flow;
+        const runState = ['queued', 'running'].includes(run.job_status)
+          ? run.job_status
+          : recommendedFlow && recommendedFlow !== 'queued'
+            ? recommendedFlow
+            : run.job_status || recommendedFlow || 'saved';
+        return (
+          <button
+            className={activeRunId === run.id ? 'history-row active' : 'history-row'}
+            key={run.id}
+            onClick={() => onOpen(run.id)}
+            type="button"
+          >
+            <strong>{run.question}</strong>
+            <span>{runState} · {run.created_at ? new Date(run.created_at).toLocaleString() : 'saved run'}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1022,9 +1030,14 @@ export function App() {
     };
   }, [activeRun?.id, activeRun?.job_status, project?.id]);
 
+  const sourceSummary = useMemo(() => summarizeSources(sources), [sources]);
+  const sourceUploadActive = Boolean(sourceJobId)
+    || sourceSummary.active
+    || ['queued', 'processing', 'running'].includes(project?.processing_status);
+  const benchmarkActive = ['queued', 'running'].includes(activeRun?.job_status);
+
   useEffect(() => {
     if (!project?.id) return undefined;
-    const sourceSummary = summarizeSources(sources);
     const shouldPollSources = sourceSummary.active || Boolean(sourceJobId);
     if (!shouldPollSources) return undefined;
     let cancelled = false;
@@ -1049,7 +1062,7 @@ export function App() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [project?.id, sourceJobId, sources]);
+  }, [project?.id, sourceJobId, sourceSummary.active]);
 
   useEffect(() => {
     if (!modelPullJob?.id || !['queued', 'running'].includes(modelPullJob.status)) return undefined;
@@ -1086,11 +1099,6 @@ export function App() {
     });
     return map;
   }, [activeRun]);
-  const sourceSummary = useMemo(() => summarizeSources(sources), [sources]);
-  const sourceUploadActive = Boolean(sourceJobId)
-    || sourceSummary.active
-    || ['queued', 'processing', 'running'].includes(project?.processing_status);
-
   function toggleSelectedSource(sourceId) {
     setSelectedSources((current) => (
       current.includes(sourceId)
@@ -1366,8 +1374,8 @@ export function App() {
                   </select>
                 </>
               )}
-              <button disabled={busy || !question.trim() || !project} type="submit">
-                <Play size={16} /> Run all RAG flows
+              <button disabled={busy || sourceUploadActive || benchmarkActive || !question.trim() || !project} type="submit">
+                <Play size={16} /> {sourceUploadActive ? 'Waiting for extraction' : benchmarkActive ? 'RAG flow running' : 'Run all RAG flows'}
               </button>
             </form>
           </section>

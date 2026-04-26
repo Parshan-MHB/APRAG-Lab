@@ -398,7 +398,68 @@ def complete_required_fact_mentions(question: str, answer: str, evidence_text: s
     return f"{answer}{separator}{' '.join(additions)}"
 
 
-def synthesize_answer(question: str, chunks: list[RetrievedChunk]) -> tuple[str, list[dict[str, Any]], list[str], dict[str, Any]]:
+ANSWER_MODE_PROFILES = {
+    "traditional": {
+        "label": "Traditional RAG answer",
+        "focus": "retrieval-first",
+        "instruction": (
+            "Write as a direct retrieval-augmented answer. Prioritize the highest-ranked text chunks, "
+            "avoid multi-agent reasoning language, and keep the result concise with citation labels."
+        ),
+    },
+    "agentic": {
+        "label": "Agentic RAG answer",
+        "focus": "specialist-and-critic-first",
+        "instruction": (
+            "Write as the main orchestrator after specialist evidence collection and a grounding critic pass. "
+            "State the answer, then call out evidence gaps, conflicts, or visual/transcript checks when relevant."
+        ),
+    },
+    "hybrid_graph": {
+        "label": "Hybrid Graph RAG answer",
+        "focus": "graph-relationship-first",
+        "instruction": (
+            "Write as a graph-augmented answer. Lead with relationships, linked entities, and graph-expanded evidence "
+            "before summarizing the final answer. Preserve citation labels exactly."
+        ),
+    },
+}
+
+
+def answer_mode_profile(answer_mode: str) -> dict[str, str]:
+    return ANSWER_MODE_PROFILES.get(answer_mode, ANSWER_MODE_PROFILES["traditional"])
+
+
+def format_extractive_answer(answer_mode: str, evidence_lines: list[str]) -> str:
+    profile = answer_mode_profile(answer_mode)
+    if answer_mode == "agentic":
+        return (
+            f"{profile['label']} ({profile['focus']}):\n"
+            "The orchestrator selected and checked the following grounded evidence before finalizing:\n"
+            + "\n".join(evidence_lines)
+        )
+    if answer_mode == "hybrid_graph":
+        graph_lines = [
+            line for line in evidence_lines if "graph_relationship" in line or "relationship" in line.lower()
+        ]
+        lead = graph_lines or evidence_lines
+        return (
+            f"{profile['label']} ({profile['focus']}):\n"
+            "Relationship-backed evidence considered first:\n"
+            + "\n".join(lead)
+        )
+    return (
+        f"{profile['label']} ({profile['focus']}):\n"
+        "Top retrieved evidence:\n"
+        + "\n".join(evidence_lines)
+    )
+
+
+def synthesize_answer(
+    question: str,
+    chunks: list[RetrievedChunk],
+    answer_mode: str = "traditional",
+) -> tuple[str, list[dict[str, Any]], list[str], dict[str, Any]]:
     report = grounding_report(question, chunks)
     if not chunks:
         return (
@@ -423,7 +484,11 @@ def synthesize_answer(question: str, chunks: list[RetrievedChunk]) -> tuple[str,
     evidence_lines = []
     citations = []
     for sentence, chunk in selected[:3]:
-        evidence_lines.append(f"- {sentence} [{chunk.citation}]")
+        relationship = chunk.metadata.get("graph_relationship")
+        relationship_note = ""
+        if isinstance(relationship, dict):
+            relationship_note = f" relationship={relationship.get('from')} -> {relationship.get('to')} ({relationship.get('type')})"
+        evidence_lines.append(f"- {sentence} [{chunk.citation}]{relationship_note}")
         citations.append(
             {
                 "chunk_id": chunk.id,
@@ -437,11 +502,13 @@ def synthesize_answer(question: str, chunks: list[RetrievedChunk]) -> tuple[str,
             }
         )
     warnings = ["insufficient_evidence"] if report["insufficient_evidence"] else []
-    answer = "Based on the uploaded evidence:\n" + "\n".join(evidence_lines)
+    answer = format_extractive_answer(answer_mode, evidence_lines)
     if not deterministic_mode():
         schema = {"answer": "string", "used_citations": ["string"], "warnings": ["string"]}
+        profile = answer_mode_profile(answer_mode)
         prompt = (
-            "Answer only from the provided evidence. Keep citation labels exactly as shown.\n"
+            "Answer only from the provided evidence. Keep citation labels exactly as shown. "
+            f"Flow: {profile['label']} ({profile['focus']}). {profile['instruction']}\n"
             f"Question: {question}\nEvidence:\n" + "\n".join(evidence_lines)
         )
         structured = provider_registry().llm().generate_structured(prompt, schema)
@@ -788,7 +855,7 @@ def _run_pipeline_direct(
             corrective_query = rewrite_query(question)
             corrective_hits = retrieve(project_id, corrective_query, top_k=DEFAULT_TOP_K_CHUNKS, metadata_filters=filters)
             chunks = rerank_evidence(question, corrective_hits, top_k=DEFAULT_RERANKED_CHUNKS)
-        answer, citations, answer_warnings, report = synthesize_answer(question, chunks)
+        answer, citations, answer_warnings, report = synthesize_answer(question, chunks, answer_mode="traditional")
         warnings.extend(answer_warnings)
         advanced = activated_advanced_variants(project_id, question, chunks, warnings)
         trace.extend(
@@ -854,6 +921,14 @@ def _run_pipeline_direct(
                 "long_context_token_estimate": advanced["long_context_rag"]["context"]["token_estimate"],
                 "corrective_rag_performed": corrective_performed,
                 "self_rag_action": advanced["self_rag"]["action"],
+                "collection_strategy": "fusion_hybrid_search",
+                "data_collection_techniques": [
+                    "fusion_query_variants",
+                    "hybrid_keyword_vector_search",
+                    "structured_fact_lookup",
+                    "corrective_retrieval",
+                    "long_context_source_summaries",
+                ],
             }
         )
     if pipeline_type == "hybrid_graph":

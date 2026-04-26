@@ -1438,6 +1438,20 @@ def ensure_no_active_source_upload(project_id: str) -> None:
         )
 
 
+def ensure_project_ready_for_benchmark(project: dict[str, Any]) -> None:
+    if project.get("processing_status") in {"queued", "processing", "running"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Source extraction is still processing. Wait until the extraction queue is complete before running a benchmark.",
+        )
+    ensure_no_active_source_upload(project["id"])
+    if not project.get("active_version_id"):
+        raise HTTPException(
+            status_code=400,
+            detail="Upload and process at least one source before running a benchmark",
+        )
+
+
 def clear_project_sources(project_id: str) -> None:
     selected_vector_store(project_id).delete_project()
     with connect() as conn:
@@ -1604,6 +1618,7 @@ def run_pipeline_safely(project_id: str, question: str, pipeline: str, selected_
 @app.post("/api/projects/{project_id}/runs")
 def create_run(project_id: str, payload: RunCreate) -> dict[str, Any]:
     project = project_summary(project_id)
+    ensure_project_ready_for_benchmark(project)
     with connect() as conn:
         chunk_count = conn.execute(
             "SELECT COUNT(*) AS count FROM chunks WHERE project_id = ?",
@@ -1750,21 +1765,27 @@ def list_runs(project_id: str) -> list[dict[str, Any]]:
             "SELECT * FROM runs WHERE project_id = ? ORDER BY created_at DESC",
             (project_id,),
         ).fetchall()
-    return [
-        {
-            "id": row["id"],
-            "project_id": row["project_id"],
-            "knowledge_base_version_id": row["knowledge_base_version_id"],
-            "question": row["question"],
-            "selected_sources": json.loads(row["selected_sources_json"]),
-            "run_mode": row["run_mode"],
-            "recommendation": json.loads(row["recommendation_json"]),
-            "parent_run_id": row["parent_run_id"],
-            "user_feedback": row["user_feedback"],
-            "created_at": row["created_at"],
-        }
-        for row in rows
-    ]
+        runs = []
+        for row in rows:
+            job = conn.execute(
+                "SELECT id, status FROM jobs WHERE run_id = ? ORDER BY created_at DESC LIMIT 1",
+                (row["id"],),
+            ).fetchone()
+            runs.append({
+                "id": row["id"],
+                "project_id": row["project_id"],
+                "knowledge_base_version_id": row["knowledge_base_version_id"],
+                "question": row["question"],
+                "selected_sources": json.loads(row["selected_sources_json"]),
+                "run_mode": row["run_mode"],
+                "recommendation": json.loads(row["recommendation_json"]),
+                "parent_run_id": row["parent_run_id"],
+                "user_feedback": row["user_feedback"],
+                "created_at": row["created_at"],
+                "job_id": job["id"] if job else None,
+                "job_status": job["status"] if job else None,
+            })
+    return runs
 
 
 @app.get("/api/runs/{run_id}")
