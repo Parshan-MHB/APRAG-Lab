@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  swift-tests:
-    name: swift-tests
+  aprag-lab-ci:
+    name: aprag-lab-ci
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
