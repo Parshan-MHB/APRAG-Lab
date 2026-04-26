@@ -1,8 +1,24 @@
 # APRAG-Lab
 
-APRAG-Lab is a local-first multimodal RAG benchmark workspace. It lets you upload documents, images, audio, and video, build a searchable knowledge base, run multiple RAG strategies against the same evidence, and compare the answers with citations, traces, graph signals, queue progress, and grounding notes.
+![Local-first](https://img.shields.io/badge/local--first-RAG-0f766e)
+![Multimodal](https://img.shields.io/badge/multimodal-docs%20%7C%20images%20%7C%20audio%20%7C%20video-2563eb)
+![Dockerized](https://img.shields.io/badge/dockerized-app%20stack-0ea5e9)
+![Ollama](https://img.shields.io/badge/models-Ollama-111827)
+![Private by default](https://img.shields.io/badge/private%20by%20default-local%20files-7c3aed)
+
+APRAG-Lab is a local-first multimodal RAG benchmark workspace for teams that need to prove an answer is grounded before they trust it. Upload documents, images, audio, and video; build a searchable knowledge base; run Traditional RAG, Agentic RAG, and Hybrid Graph RAG against the same evidence; then compare the outputs with citations, traces, graph signals, queue progress, metrics, and grounding notes.
 
 The product is designed for teams that need to evaluate whether a RAG system is really grounded in source material before using it in production. It solves the repeated setup problem by keeping the app, queue, metadata store, and vector databases in Docker, while running heavy model and media processing on the host laptop where Ollama, FFmpeg, OCR, and transcription can use the machine's native resources.
+
+![APRAG-Lab multimodal RAG benchmark flow](docs/assets/aprag-lab-rag-flow-diagram.svg)
+
+## Why APRAG-Lab
+
+- Benchmark multiple RAG strategies side by side instead of trusting a single answer path.
+- Test real multimodal evidence with local models, local files, and local observability.
+- Inspect the full chain from upload to extraction, retrieval, graph usage, citation resolution, and export.
+- Keep heavy inference on host Ollama while Docker gives new users a repeatable app stack.
+- Use realistic sample data to validate the product before bringing private documents.
 
 ## What It Does
 
