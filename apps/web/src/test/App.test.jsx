@@ -221,6 +221,8 @@ describe('RAGBench Studio UI', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'RAGBench Studio' })).toBeInTheDocument());
     expect(screen.getByText('Upload And Processing')).toBeInTheDocument();
     expect(screen.getByText('Project Sources')).toBeInTheDocument();
+    expect(screen.getByText('Documents')).toBeInTheDocument();
+    expect(screen.getByText('0/1 selected')).toBeInTheDocument();
     expect(screen.getByText('Source Viewer')).toBeInTheDocument();
     expect(screen.getByText('Benchmark Run')).toBeInTheDocument();
     expect(screen.getByText('Run History')).toBeInTheDocument();

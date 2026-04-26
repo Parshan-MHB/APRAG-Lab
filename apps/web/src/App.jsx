@@ -2,14 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   BarChart3,
+  ChevronRight,
   CheckCircle2,
-  Clock3,
   Database,
   FileText,
+  FolderOpen,
   History,
   Loader2,
   Play,
   RefreshCw,
+  Search,
   Settings,
   XCircle,
   Upload,
@@ -70,6 +72,25 @@ function formatSettingValue(value) {
   if (Array.isArray(value)) return value.length ? value.join(', ') : 'none';
   if (typeof value === 'object') return Object.entries(value).map(([key, item]) => `${key}: ${item}`).join(', ') || 'none';
   return String(value);
+}
+
+function sourceGroupLabel(sourceType = 'unknown') {
+  const normalized = sourceType.toLowerCase();
+  if (['pdf', 'docx', 'markdown', 'text'].includes(normalized)) return 'Documents';
+  if (['image', 'png', 'jpg', 'jpeg', 'webp', 'gif'].includes(normalized)) return 'Images';
+  if (['audio', 'wav', 'mp3', 'm4a', 'ogg'].includes(normalized)) return 'Audio';
+  if (['video', 'mp4', 'mov', 'mkv', 'webm'].includes(normalized)) return 'Video';
+  if (['csv', 'json', 'table', 'data'].includes(normalized)) return 'Data';
+  return 'Other';
+}
+
+function groupSources(sources) {
+  return sources.reduce((groups, source) => {
+    const label = sourceGroupLabel(source.source_type);
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(source);
+    return groups;
+  }, {});
 }
 
 function requestId() {
@@ -220,29 +241,91 @@ function ExtractionProgress({ project, sources, events }) {
 }
 
 function SourceList({ sources, selectedSources, onToggle, onSelectSource }) {
+  const [query, setQuery] = useState('');
   if (!sources.length) {
     return <div className="empty-state">Upload files to create a reusable knowledge base.</div>;
   }
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredSources = normalizedQuery
+    ? sources.filter((source) => (
+      source.filename.toLowerCase().includes(normalizedQuery)
+      || source.source_type.toLowerCase().includes(normalizedQuery)
+      || source.status.toLowerCase().includes(normalizedQuery)
+    ))
+    : sources;
+  const groups = groupSources(filteredSources);
+  const orderedGroups = ['Documents', 'Images', 'Audio', 'Video', 'Data', 'Other'].filter((name) => groups[name]?.length);
+  const selectedInView = filteredSources.filter((source) => selectedSources.includes(source.id)).length;
+  function selectVisible() {
+    filteredSources.forEach((source) => {
+      if (!selectedSources.includes(source.id)) onToggle(source.id);
+    });
+  }
+  function clearVisible() {
+    filteredSources.forEach((source) => {
+      if (selectedSources.includes(source.id)) onToggle(source.id);
+    });
+  }
   return (
-    <div className="source-list">
-      {sources.map((source) => (
-        <div className="source-row" key={source.id}>
-          <label>
-            <input
-              type="checkbox"
-              checked={selectedSources.includes(source.id)}
-              onChange={() => onToggle(source.id)}
-            />
-            <span>
-              <strong>{source.filename}</strong>
-              <small>{source.source_type} · {source.status} · {source.knowledge_base_version_id ? `v${source.knowledge_base_version_id.slice(0, 8)}` : 'pending'}</small>
-            </span>
-          </label>
-          <button className="ghost" type="button" onClick={() => onSelectSource(source)}>
-            View
+    <div className="source-browser">
+      <label className="search-field" htmlFor="source-search">
+        <Search size={15} />
+        <input
+          id="source-search"
+          type="search"
+          placeholder="Search sources"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </label>
+      <div className="source-toolbar">
+        <span>{selectedInView}/{filteredSources.length} selected</span>
+        <div>
+          <button className="ghost compact-button" type="button" onClick={selectVisible} disabled={!filteredSources.length}>
+            Select all
+          </button>
+          <button className="ghost compact-button" type="button" onClick={clearVisible} disabled={!selectedInView}>
+            Clear
           </button>
         </div>
-      ))}
+      </div>
+      {!filteredSources.length && <div className="empty-state">No sources match the current search.</div>}
+      {orderedGroups.map((groupName, groupIndex) => {
+        const groupItems = groups[groupName];
+        const processed = groupItems.filter((source) => source.status === 'processed').length;
+        return (
+          <details className="source-group" key={groupName} open={groupIndex === 0 || Boolean(normalizedQuery)}>
+            <summary>
+              <span className="source-group-title">
+                <ChevronRight size={16} className="source-chevron" />
+                <FolderOpen size={16} />
+                <strong>{groupName}</strong>
+              </span>
+              <span>{processed}/{groupItems.length} processed</span>
+            </summary>
+            <div className="source-list">
+              {groupItems.map((source) => (
+                <div className="source-row" key={source.id}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={selectedSources.includes(source.id)}
+                      onChange={() => onToggle(source.id)}
+                    />
+                    <span>
+                      <strong>{source.filename}</strong>
+                      <small>{source.source_type} · {source.status} · {source.knowledge_base_version_id ? `v${source.knowledge_base_version_id.slice(0, 8)}` : 'pending'}</small>
+                    </span>
+                  </label>
+                  <button className="ghost compact-button" type="button" onClick={() => onSelectSource(source)}>
+                    View
+                  </button>
+                </div>
+              ))}
+            </div>
+          </details>
+        );
+      })}
     </div>
   );
 }
@@ -1095,7 +1178,7 @@ export function App() {
       <StatusBanner error={error} busy={busy} status={status} />
       <SummaryStrip project={project} sources={sources} />
 
-      <section className="layout">
+      <section className="workspace-layout">
         <div className="column">
           <section className="panel">
             <h2><Upload size={18} /> Upload And Processing</h2>
