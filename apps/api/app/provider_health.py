@@ -18,7 +18,7 @@ REQUIRED_OLLAMA_MODELS = [DEFAULT_OLLAMA_LLM_MODEL, DEFAULT_OLLAMA_VLM_MODEL, DE
 
 
 def provider_mode() -> str:
-    return os.environ.get("RAGBENCH_PROVIDER_MODE", "real").strip().lower()
+    return os.environ.get("APRAG_PROVIDER_MODE", "real").strip().lower()
 
 
 def deterministic_mode() -> bool:
@@ -95,7 +95,7 @@ def media_health() -> dict[str, Any]:
                 "url": host_media_base_url(),
                 "data_dir": host.get("data_dir", ""),
                 "warning": "" if host_ready else host.get("error", "Host media runtime is unavailable."),
-                "setup": "Run: RAGBENCH_HOST_DATA_DIR=$PWD/data python3 scripts/host_media_runtime.py",
+                "setup": "Run: APRAG_HOST_DATA_DIR=$PWD/data python3 scripts/host_media_runtime.py",
             },
             "ffmpeg": {
                 "provider": "ffmpeg",
@@ -205,7 +205,7 @@ def queue_health() -> dict[str, Any]:
         "local_worker": {
             "provider": "sqlite-local-worker",
             "available": True,
-            "mode": os.environ.get("RAGBENCH_QUEUE_MODE", "local"),
+            "mode": os.environ.get("APRAG_QUEUE_MODE", "local"),
             "heavy_processing": False,
         },
         "redis": {"provider": "redis", "available": _tcp_check(host, 6379), "url": redis_url, "heavy_processing": False},

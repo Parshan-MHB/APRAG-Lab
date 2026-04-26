@@ -1,6 +1,6 @@
-# RAGBench Studio
+# APRAG-Lab
 
-RAGBench Studio is a local-first multimodal RAG benchmark workspace. It lets you upload documents, images, audio, and video, build a searchable knowledge base, run multiple RAG strategies against the same evidence, and compare the answers with citations, traces, graph signals, queue progress, and grounding notes.
+APRAG-Lab is a local-first multimodal RAG benchmark workspace. It lets you upload documents, images, audio, and video, build a searchable knowledge base, run multiple RAG strategies against the same evidence, and compare the answers with citations, traces, graph signals, queue progress, and grounding notes.
 
 The product is designed for teams that need to evaluate whether a RAG system is really grounded in source material before using it in production. It solves the repeated setup problem by keeping the app, queue, metadata store, and vector databases in Docker, while running heavy model and media processing on the host laptop where Ollama, FFmpeg, OCR, and transcription can use the machine's native resources.
 
@@ -105,7 +105,7 @@ Create the host media runtime virtual environment:
 Start the host media runtime in a separate terminal:
 
 ```bash
-RAGBENCH_HOST_DATA_DIR=$PWD/data .venv/host-media/bin/python scripts/host_media_runtime.py --host 0.0.0.0
+APRAG_HOST_DATA_DIR=$PWD/data .venv/host-media/bin/python scripts/host_media_runtime.py --host 0.0.0.0
 ```
 
 Start the product containers:
@@ -238,18 +238,18 @@ Supported upload extensions:
 
 Common environment variables:
 
-- `RAGBENCH_MODEL_PROFILE=auto|lite|standard|high_quality`
-- `RAGBENCH_PROVIDER_MODE=real|deterministic`
-- `RAGBENCH_VECTOR_STORE=chroma|qdrant|sqlite`
-- `RAGBENCH_MEDIA_RUNTIME=host|container`
+- `APRAG_MODEL_PROFILE=auto|lite|standard|high_quality`
+- `APRAG_PROVIDER_MODE=real|deterministic`
+- `APRAG_VECTOR_STORE=chroma|qdrant|sqlite`
+- `APRAG_MEDIA_RUNTIME=host|container`
 - `OLLAMA_BASE_URL=http://host.docker.internal:11434`
-- `RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765`
-- `RAGBENCH_DEFAULT_OLLAMA_LLM=qwen3:8b`
-- `RAGBENCH_DEFAULT_OLLAMA_VLM=qwen3-vl:4b`
-- `RAGBENCH_DEFAULT_EMBEDDINGS=bge-m3`
-- `RAGBENCH_DEFAULT_TRANSCRIPTION=faster-whisper:large-v3-turbo`
-- `RAGBENCH_OBSERVABILITY_ENABLED=true|false`
-- `RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces`
+- `APRAG_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765`
+- `APRAG_DEFAULT_OLLAMA_LLM=qwen3:8b`
+- `APRAG_DEFAULT_OLLAMA_VLM=qwen3-vl:4b`
+- `APRAG_DEFAULT_EMBEDDINGS=bge-m3`
+- `APRAG_DEFAULT_TRANSCRIPTION=faster-whisper:large-v3-turbo`
+- `APRAG_OBSERVABILITY_ENABLED=true|false`
+- `APRAG_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces`
 - `LANGSMITH_TRACING=true|false`
 - `LANGSMITH_API_KEY=...`
 - `LANGSMITH_PROJECT=APRAG-Lab`
@@ -288,14 +288,14 @@ Logs:
 
 ```bash
 curl "http://localhost:8000/api/diagnostics/logs?limit=200"
-tail -f data/logs/ragbench.log
+tail -f data/logs/APRAG-Lab.log
 ```
 
 Browser-level manual testing can be started with:
 
 ```bash
 cd apps/web
-RAGBENCH_PLAYWRIGHT_HEADLESS=0 node scripts/manual-product-test.cjs
+APRAG_PLAYWRIGHT_HEADLESS=0 node scripts/manual-product-test.cjs
 ```
 
 ## Stop And Clean Up
@@ -353,4 +353,4 @@ If Docker runs out of memory, keep Ollama on the host, use the `lite` model prof
 
 ## Privacy
 
-RAGBench Studio is local-first. By default, source files, extracted content, embeddings, model calls, traces, and benchmark results stay on the local machine. The default product path does not require a cloud LLM provider.
+APRAG-Lab is local-first. By default, source files, extracted content, embeddings, model calls, traces, and benchmark results stay on the local machine. The default product path does not require a cloud LLM provider.

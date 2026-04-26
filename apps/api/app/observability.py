@@ -24,7 +24,7 @@ def _safe_attribute(value: Any) -> str | int | float | bool:
 
 
 def _otlp_endpoints() -> list[str]:
-    raw = os.environ.get("RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS", "")
+    raw = os.environ.get("APRAG_OTEL_EXPORTER_OTLP_ENDPOINTS", "")
     if raw:
         return [endpoint.strip() for endpoint in raw.split(",") if endpoint.strip()]
     endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
@@ -36,7 +36,7 @@ def setup_observability(service_name: str) -> None:
     if _INITIALIZED:
         return
     _INITIALIZED = True
-    if not _enabled(os.environ.get("RAGBENCH_OBSERVABILITY_ENABLED"), default=True):
+    if not _enabled(os.environ.get("APRAG_OBSERVABILITY_ENABLED"), default=True):
         write_local_log("observability_disabled", {"service": service_name})
         return
     endpoints = _otlp_endpoints()
@@ -79,7 +79,7 @@ def observability_status() -> dict[str, Any]:
     langsmith_enabled = _enabled(os.environ.get("LANGSMITH_TRACING")) or _enabled(os.environ.get("LANGCHAIN_TRACING_V2"))
     phoenix_endpoint = os.environ.get("PHOENIX_COLLECTOR_ENDPOINT", "http://phoenix:6006/v1/traces")
     return {
-        "enabled": _enabled(os.environ.get("RAGBENCH_OBSERVABILITY_ENABLED"), default=True),
+        "enabled": _enabled(os.environ.get("APRAG_OBSERVABILITY_ENABLED"), default=True),
         "otel_available": _OTEL_AVAILABLE,
         "otel_error": _OTEL_ERROR,
         "otlp_endpoints": endpoints,

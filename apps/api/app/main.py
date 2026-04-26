@@ -93,7 +93,7 @@ async def lifespan(_: FastAPI):
 
 
 setup_observability(os.environ.get("OTEL_SERVICE_NAME", "aprag-lab-api"))
-app = FastAPI(title="RAGBench Studio API", lifespan=lifespan)
+app = FastAPI(title="APRAG-Lab API", lifespan=lifespan)
 instrument_fastapi(app)
 app.add_middleware(
     CORSMiddleware,
@@ -174,7 +174,7 @@ def now_iso() -> str:
 
 
 def queue_mode() -> str:
-    return os.environ.get("RAGBENCH_QUEUE_MODE", "inline").strip().lower()
+    return os.environ.get("APRAG_QUEUE_MODE", "inline").strip().lower()
 
 
 def row_to_dict(row: Any) -> dict[str, Any]:
@@ -230,7 +230,7 @@ async def request_logging_middleware(request: Request, call_next):
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "ragbench-api"}
+    return {"status": "ok", "service": "APRAG-Lab-api"}
 
 
 @app.get("/api/diagnostics/logs")
@@ -1016,7 +1016,7 @@ def persist_blocks_for_source(conn: Any, project_id: str, source_id: str, filena
 
 def process_staged_sources(project_id: str, source_ids: list[str], change_type: str = "append_sources") -> dict[str, Any]:
     uploaded: list[dict[str, Any]] = []
-    print(f"ragbench source ingestion started project_id={project_id} sources={len(source_ids)} change_type={change_type}", flush=True)
+    print(f"APRAG-Lab source ingestion started project_id={project_id} sources={len(source_ids)} change_type={change_type}", flush=True)
     with connect() as conn:
         conn.execute("UPDATE projects SET processing_status = ?, updated_at = ? WHERE id = ?", ("processing", now_iso(), project_id))
         rows = conn.execute(
@@ -1026,7 +1026,7 @@ def process_staged_sources(project_id: str, source_ids: list[str], change_type: 
     for source in rows:
         target = data_dir() / source["local_path"]
         kind = source["source_type"]
-        print(f"ragbench source processing started source_id={source['id']} filename={source['filename']} type={kind}", flush=True)
+        print(f"APRAG-Lab source processing started source_id={source['id']} filename={source['filename']} type={kind}", flush=True)
         limit_error = validate_file_limits(target, kind)
         blocks, extraction_error = ([], limit_error) if limit_error else extract_content_blocks(target, kind, source["filename"], project_id, source["id"])
         status = "processed"
@@ -1047,7 +1047,7 @@ def process_staged_sources(project_id: str, source_ids: list[str], change_type: 
                 conn.execute("DELETE FROM chunks WHERE source_id = ?", (source["id"],))
                 persist_blocks_for_source(conn, project_id, source["id"], source["filename"], kind, blocks)
         uploaded.append({"id": source["id"], "filename": source["filename"], "source_type": kind, "status": status, "error": error})
-        print(f"ragbench source processing finished source_id={source['id']} status={status} error={error or ''}", flush=True)
+        print(f"APRAG-Lab source processing finished source_id={source['id']} status={status} error={error or ''}", flush=True)
     rebuild_project_graph(project_id)
     with connect() as conn:
         processed_count = conn.execute("SELECT COUNT(*) AS count FROM sources WHERE project_id = ? AND status = 'processed'", (project_id,)).fetchone()["count"]
@@ -1062,7 +1062,7 @@ def process_staged_sources(project_id: str, source_ids: list[str], change_type: 
             conn.execute("UPDATE projects SET processing_status = ? WHERE id = ?", ("partial_success", project_id))
     project = project_summary(project_id)
     write_project_manifest(project)
-    print(f"ragbench source ingestion finished project_id={project_id} processed={processed_count} failed={failed_count}", flush=True)
+    print(f"APRAG-Lab source ingestion finished project_id={project_id} processed={processed_count} failed={failed_count}", flush=True)
     return {"sources": uploaded, "project": project, "target_project_id": project_id, "upload_action": change_type}
 
 
@@ -1945,7 +1945,7 @@ def export_json(run_id: str) -> JSONResponse:
     run = get_run(run_id)
     return JSONResponse(
         scrub({
-            "schema": "ragbench.run_export.v1",
+            "schema": "APRAG-Lab.run_export.v1",
             "run": run,
             "privacy": {
                 "local_first": True,
@@ -2064,7 +2064,7 @@ def run_trace_events(run_id: str) -> dict[str, Any]:
 @app.get("/api/runs/{run_id}/export.md", response_class=PlainTextResponse)
 def export_markdown(run_id: str) -> str:
     run = get_run(run_id)
-    lines = [f"# RAGBench Run", "", f"Question: {run['question']}", ""]
+    lines = [f"# APRAG-Lab Run", "", f"Question: {run['question']}", ""]
     lines.append(f"Recommended flow: {run['recommendation']['recommended_flow']}")
     for reason in run["recommendation"]["reasons"]:
         lines.append(f"- {reason}")

@@ -17,10 +17,10 @@ from .observability import observe_span
 from .resource_profile import selected_profile
 
 _DEFAULT_PROFILE = selected_profile()
-DEFAULT_OLLAMA_LLM_MODEL = os.environ.get("RAGBENCH_DEFAULT_OLLAMA_LLM", _DEFAULT_PROFILE.llm_model)
-DEFAULT_OLLAMA_VLM_MODEL = os.environ.get("RAGBENCH_DEFAULT_OLLAMA_VLM", _DEFAULT_PROFILE.vlm_model)
-DEFAULT_EMBEDDING_MODEL = os.environ.get("RAGBENCH_DEFAULT_EMBEDDINGS", _DEFAULT_PROFILE.embedding_model)
-DEFAULT_TRANSCRIPTION_MODEL = os.environ.get("RAGBENCH_DEFAULT_TRANSCRIPTION", "faster-whisper:large-v3-turbo")
+DEFAULT_OLLAMA_LLM_MODEL = os.environ.get("APRAG_DEFAULT_OLLAMA_LLM", _DEFAULT_PROFILE.llm_model)
+DEFAULT_OLLAMA_VLM_MODEL = os.environ.get("APRAG_DEFAULT_OLLAMA_VLM", _DEFAULT_PROFILE.vlm_model)
+DEFAULT_EMBEDDING_MODEL = os.environ.get("APRAG_DEFAULT_EMBEDDINGS", _DEFAULT_PROFILE.embedding_model)
+DEFAULT_TRANSCRIPTION_MODEL = os.environ.get("APRAG_DEFAULT_TRANSCRIPTION", "faster-whisper:large-v3-turbo")
 
 
 def ollama_model_installed(requested: str, installed: list[str] | set[str]) -> bool:
@@ -101,16 +101,16 @@ def http_json(url: str, payload: dict[str, Any] | None = None, timeout: float = 
 
 def ollama_generation_payload(model: str, prompt: str, **extra: Any) -> dict[str, Any]:
     payload = {"model": model, "prompt": prompt, "stream": False, **extra}
-    disable_thinking = os.environ.get("RAGBENCH_OLLAMA_THINKING", "0").strip().lower() not in {"1", "true", "yes", "on"}
+    disable_thinking = os.environ.get("APRAG_OLLAMA_THINKING", "0").strip().lower() not in {"1", "true", "yes", "on"}
     if disable_thinking:
         payload["think"] = False
     return payload
 
 
-def ollama_generation_options(prefix: str = "RAGBENCH_OLLAMA") -> dict[str, Any]:
+def ollama_generation_options(prefix: str = "APRAG_OLLAMA") -> dict[str, Any]:
     return {
-        "temperature": float(os.environ.get(f"{prefix}_TEMPERATURE", os.environ.get("RAGBENCH_OLLAMA_TEMPERATURE", "0"))),
-        "num_predict": max(32, int(os.environ.get(f"{prefix}_NUM_PREDICT", os.environ.get("RAGBENCH_OLLAMA_NUM_PREDICT", "512")))),
+        "temperature": float(os.environ.get(f"{prefix}_TEMPERATURE", os.environ.get("APRAG_OLLAMA_TEMPERATURE", "0"))),
+        "num_predict": max(32, int(os.environ.get(f"{prefix}_NUM_PREDICT", os.environ.get("APRAG_OLLAMA_NUM_PREDICT", "512")))),
     }
 
 
@@ -219,7 +219,7 @@ class OllamaVLMAdapter(OllamaAdapter):
                 f"{self.base_url}/api/generate",
                 {
                     **ollama_generation_payload(self.model, f"Question: {question}", images=[encoded]),
-                    "options": ollama_generation_options("RAGBENCH_VLM"),
+                    "options": ollama_generation_options("APRAG_VLM"),
                 },
                 self.timeout,
             )
@@ -312,7 +312,7 @@ class EasyOCRAdapter:
             raise ProviderUnavailable("EasyOCR Python package is not installed.")
         import easyocr
 
-        reader = easyocr.Reader(["en"], gpu=os.environ.get("RAGBENCH_EASYOCR_GPU", "0") == "1")
+        reader = easyocr.Reader(["en"], gpu=os.environ.get("APRAG_EASYOCR_GPU", "0") == "1")
         rows = reader.readtext(str(image_path), detail=1)
         text = "\n".join(str(row[1]) for row in rows)
         confidences = [float(row[2]) for row in rows if len(row) > 2]
@@ -360,9 +360,9 @@ class FasterWhisperAdapter:
             raise ProviderUnavailable("faster-whisper Python package is not installed.")
         from faster_whisper import WhisperModel
 
-        model_name = os.environ.get("RAGBENCH_FASTER_WHISPER_MODEL", "large-v3-turbo")
-        device = os.environ.get("RAGBENCH_WHISPER_DEVICE", "cpu")
-        compute_type = os.environ.get("RAGBENCH_WHISPER_COMPUTE_TYPE", "int8")
+        model_name = os.environ.get("APRAG_FASTER_WHISPER_MODEL", "large-v3-turbo")
+        device = os.environ.get("APRAG_WHISPER_DEVICE", "cpu")
+        compute_type = os.environ.get("APRAG_WHISPER_COMPUTE_TYPE", "int8")
         model = WhisperModel(model_name, device=device, compute_type=compute_type)
         segments, info = model.transcribe(str(audio_path), vad_filter=True)
         normalized = []
@@ -379,7 +379,7 @@ class FasterWhisperAdapter:
 
 
 def provider_mode() -> str:
-    return os.environ.get("RAGBENCH_PROVIDER_MODE", "real").strip().lower()
+    return os.environ.get("APRAG_PROVIDER_MODE", "real").strip().lower()
 
 
 def deterministic_mode() -> bool:
@@ -397,25 +397,25 @@ class ProviderRegistry:
     def llm(self) -> OllamaAdapter:
         if self.deterministic:
             raise ProviderUnavailable("Deterministic mode does not expose a real LLM adapter.")
-        return OllamaAdapter(model=os.environ.get("RAGBENCH_DEFAULT_OLLAMA_LLM", DEFAULT_OLLAMA_LLM_MODEL), timeout=float(os.environ.get("RAGBENCH_LLM_TIMEOUT", "180")))
+        return OllamaAdapter(model=os.environ.get("APRAG_DEFAULT_OLLAMA_LLM", DEFAULT_OLLAMA_LLM_MODEL), timeout=float(os.environ.get("APRAG_LLM_TIMEOUT", "180")))
 
     def vlm(self) -> OllamaVLMAdapter:
         if self.deterministic:
             raise ProviderUnavailable("Deterministic mode does not expose a real VLM adapter.")
-        return OllamaVLMAdapter(model=os.environ.get("RAGBENCH_DEFAULT_OLLAMA_VLM", DEFAULT_OLLAMA_VLM_MODEL), timeout=float(os.environ.get("RAGBENCH_VLM_TIMEOUT", "240")))
+        return OllamaVLMAdapter(model=os.environ.get("APRAG_DEFAULT_OLLAMA_VLM", DEFAULT_OLLAMA_VLM_MODEL), timeout=float(os.environ.get("APRAG_VLM_TIMEOUT", "240")))
 
     def embeddings(self) -> DeterministicEmbeddingAdapter | OllamaEmbeddingAdapter:
         if self.deterministic:
             return DeterministicEmbeddingAdapter()
-        return OllamaEmbeddingAdapter(model=os.environ.get("RAGBENCH_DEFAULT_EMBEDDINGS", DEFAULT_EMBEDDING_MODEL), timeout=float(os.environ.get("RAGBENCH_EMBEDDING_TIMEOUT", "60")))
+        return OllamaEmbeddingAdapter(model=os.environ.get("APRAG_DEFAULT_EMBEDDINGS", DEFAULT_EMBEDDING_MODEL), timeout=float(os.environ.get("APRAG_EMBEDDING_TIMEOUT", "60")))
 
     def ocr(self) -> TesseractOCRAdapter | EasyOCRAdapter:
-        if os.environ.get("RAGBENCH_OCR_PROVIDER", "tesseract") == "easyocr":
+        if os.environ.get("APRAG_OCR_PROVIDER", "tesseract") == "easyocr":
             return EasyOCRAdapter()
         return TesseractOCRAdapter()
 
     def transcription(self) -> FasterWhisperAdapter | WhisperCppAdapter:
-        if os.environ.get("RAGBENCH_TRANSCRIPTION_PROVIDER", "faster-whisper") == "whisper.cpp":
+        if os.environ.get("APRAG_TRANSCRIPTION_PROVIDER", "faster-whisper") == "whisper.cpp":
             return WhisperCppAdapter()
         return FasterWhisperAdapter()
 
@@ -426,7 +426,7 @@ def provider_registry() -> ProviderRegistry:
 
 def choose_document_parser(filename: str, prefer_docling: bool | None = None) -> dict[str, Any]:
     suffix = Path(filename).suffix.lower()
-    use_docling = prefer_docling if prefer_docling is not None else os.environ.get("RAGBENCH_DOC_PARSER") == "docling"
+    use_docling = prefer_docling if prefer_docling is not None else os.environ.get("APRAG_DOC_PARSER") == "docling"
     docling_available = shutil.which("docling") is not None
     if use_docling and docling_available:
         return {"parser": "docling", "available": True, "reason": "Docling requested and executable is available."}

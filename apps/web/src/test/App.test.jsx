@@ -228,11 +228,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('RAGBench Studio UI', () => {
+describe('APRAG-Lab UI', () => {
   it('renders the required product workspace areas and accessible tabs', async () => {
     render(<App />);
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'RAGBench Studio' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'APRAG-Lab' })).toBeInTheDocument());
     expect(screen.getByText('Upload And Processing')).toBeInTheDocument();
     expect(screen.getByText('Project Sources')).toBeInTheDocument();
     expect(screen.getByText('Documents')).toBeInTheDocument();

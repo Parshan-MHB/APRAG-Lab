@@ -4,11 +4,11 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-os.environ["DATA_DIR"] = "/tmp/ragbench-test-data"
-os.environ["RAGBENCH_PROVIDER_MODE"] = "deterministic"
-os.environ["RAGBENCH_QUEUE_MODE"] = "inline"
-os.environ["RAGBENCH_VECTOR_STORE"] = "sqlite"
-os.environ["RAGBENCH_MEDIA_RUNTIME"] = "container"
+os.environ["DATA_DIR"] = "/tmp/APRAG-Lab-test-data"
+os.environ["APRAG_PROVIDER_MODE"] = "deterministic"
+os.environ["APRAG_QUEUE_MODE"] = "inline"
+os.environ["APRAG_VECTOR_STORE"] = "sqlite"
+os.environ["APRAG_MEDIA_RUNTIME"] = "container"
 
 from app.database import connect, data_dir, init_db  # noqa: E402
 from app import main as main_module  # noqa: E402
@@ -735,7 +735,7 @@ def test_run_response_and_exports_include_comparison_json_markdown():
 
     exported_json = client.get(f"/api/runs/{run['id']}/export.json")
     assert exported_json.status_code == 200
-    assert exported_json.json()["schema"] == "ragbench.run_export.v1"
+    assert exported_json.json()["schema"] == "APRAG-Lab.run_export.v1"
     assert exported_json.json()["run"]["comparison"]["tradeoff_notes"]
 
     exported_markdown = client.get(f"/api/runs/{run['id']}/export.md")
@@ -834,7 +834,7 @@ def test_local_logs_are_written_without_secrets_for_run_events():
 
     log_text = local_log_path().read_text(encoding="utf-8")
     assert "persist_outputs" in log_text
-    assert "/tmp/ragbench-test-data" not in log_text
+    assert "/tmp/APRAG-Lab-test-data" not in log_text
     assert "api_key" not in log_text
 
 
@@ -1124,9 +1124,9 @@ def test_epic13_exports_are_scrubbed_and_include_privacy_flags():
 
     assert exported["privacy"]["cloud_provider_used"] is False
     assert exported["privacy"]["telemetry_enabled"] is False
-    assert "/tmp/ragbench-test-data" not in str(exported)
+    assert "/tmp/APRAG-Lab-test-data" not in str(exported)
     assert "api_key" not in str(exported).lower()
-    assert "/tmp/ragbench-test-data" not in text
+    assert "/tmp/APRAG-Lab-test-data" not in text
 
 
 def test_epic14_sample_dataset_loads_sources_and_questions():
@@ -1382,7 +1382,7 @@ def test_epic17_migration_status_on_fresh_database():
 
 
 def test_epic18_reliability_defaults_disk_warning_and_performance_smoke(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_DISK_WARNING_BYTES", str(10**18))
+    monkeypatch.setenv("APRAG_DISK_WARNING_BYTES", str(10**18))
     reliability = client.get("/api/settings/reliability").json()
     project = client.post("/api/projects", json={"name": "Perf Smoke"}).json()
     upload = client.post(
@@ -1407,7 +1407,7 @@ def test_epic18_reliability_defaults_disk_warning_and_performance_smoke(monkeypa
 
 
 def test_resource_profile_preflight_selects_safe_model_flow(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_MODEL_PROFILE", "auto")
+    monkeypatch.setenv("APRAG_MODEL_PROFILE", "auto")
     lite_resources = {"free_disk_bytes": 45 * GIB, "memory_bytes": 16 * GIB, "free_disk_gib": 45, "memory_gib": 16}
     lite = preflight_report(lite_resources)
     assert lite["safe_to_pull"] is True
@@ -1626,7 +1626,7 @@ def test_epic22_settings_separate_local_required_from_paid_cloud_extensions():
 
 
 def test_epic23_provider_health_reports_real_mode_and_host_ollama_remediation(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     body = client.get("/api/settings/provider-health").json()
 
     assert body["real_mode"] is True
@@ -1634,7 +1634,7 @@ def test_epic23_provider_health_reports_real_mode_and_host_ollama_remediation(mo
     assert "Install Ollama" in body["ollama"]["remediation"]
     assert "storage" in body
     assert "queues" in body
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "deterministic")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "deterministic")
 
 
 def test_epic24_deterministic_mode_is_explicit_and_model_check_has_host_ollama_setup():
@@ -1661,7 +1661,7 @@ def test_epic25_vector_store_adapters_support_delete_lifecycle():
 
 
 def test_epic26_real_mode_rejects_invalid_image_without_placeholder(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     project = client.post("/api/projects", json={"name": "Real Media Failure"}).json()
     response = client.post(
         f"/api/projects/{project['id']}/sources",
@@ -1670,7 +1670,7 @@ def test_epic26_real_mode_rejects_invalid_image_without_placeholder(monkeypatch)
 
     assert response["sources"][0]["status"] == "failed"
     assert "Deterministic OCR placeholder" not in str(response)
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "deterministic")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "deterministic")
 
 
 def test_epic27_graph_state_uses_actual_trace_nodes_not_prefilled_list():
@@ -1712,7 +1712,7 @@ def test_epic28_queued_benchmark_is_processed_by_worker(monkeypatch):
         f"/api/projects/{project['id']}/sources",
         files={"files": ("auth.txt", b"Authentication uses API Gateway and Token Store.", "text/plain")},
     )
-    monkeypatch.setenv("RAGBENCH_QUEUE_MODE", "local")
+    monkeypatch.setenv("APRAG_QUEUE_MODE", "local")
     queued = client.post(f"/api/projects/{project['id']}/runs", json={"question": "What does authentication use?"}).json()
     assert queued["job_status"] == "queued"
 
@@ -1722,11 +1722,11 @@ def test_epic28_queued_benchmark_is_processed_by_worker(monkeypatch):
     completed = client.get(f"/api/runs/{queued['id']}").json()
     assert completed["job_status"] == "succeeded"
     assert len(completed["results"]) == 3
-    monkeypatch.setenv("RAGBENCH_QUEUE_MODE", "inline")
+    monkeypatch.setenv("APRAG_QUEUE_MODE", "inline")
 
 
 def test_epic28_source_upload_is_staged_and_processed_by_worker(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_QUEUE_MODE", "local")
+    monkeypatch.setenv("APRAG_QUEUE_MODE", "local")
     project = client.post("/api/projects", json={"name": "Queued Sources"}).json()
     upload = client.post(
         f"/api/projects/{project['id']}/sources",
@@ -1742,7 +1742,7 @@ def test_epic28_source_upload_is_staged_and_processed_by_worker(monkeypatch):
     project_after = client.get(f"/api/projects/{project['id']}").json()
     assert completed["status"] == "succeeded"
     assert project_after["chunk_count"] == 1
-    monkeypatch.setenv("RAGBENCH_QUEUE_MODE", "inline")
+    monkeypatch.setenv("APRAG_QUEUE_MODE", "inline")
 
 
 def test_epic29_schema_version_and_repository_status_are_real():
@@ -1923,7 +1923,7 @@ def insert_visual_source(project_id: str, source_id: str, ocr_text: str = "Login
 
 
 def test_epic35_real_image_ingestion_creates_vlm_caption_block(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     monkeypatch.setattr(media_processing, "provider_registry", lambda: FakeRegistry())
     project_root = data_dir() / "projects" / "epic35-image"
     image_path = project_root / "sources" / "original" / "diagram.png"
@@ -1944,7 +1944,7 @@ def test_epic35_real_image_ingestion_creates_vlm_caption_block(monkeypatch):
 
 
 def test_image_ingestion_retries_when_no_text_photo_gets_empty_vlm_caption(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
 
     class EmptyOCR:
         provider = "fake_ocr"
@@ -1984,8 +1984,8 @@ def test_image_ingestion_retries_when_no_text_photo_gets_empty_vlm_caption(monke
 
 
 def test_host_media_runtime_path_uses_host_ocr_without_container_tesseract(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
-    monkeypatch.setenv("RAGBENCH_MEDIA_RUNTIME", "host")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_MEDIA_RUNTIME", "host")
     monkeypatch.setattr(media_processing, "provider_registry", lambda: FakeRegistry())
 
     class FakeHostMediaClient:
@@ -2007,7 +2007,7 @@ def test_host_media_runtime_path_uses_host_ocr_without_container_tesseract(monke
 
 
 def test_epic35_real_video_ingestion_creates_frame_vlm_caption_blocks(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     monkeypatch.setattr(media_processing, "provider_registry", lambda: FakeRegistry())
     monkeypatch.setattr(media_processing, "transcribe_audio", lambda path, project_root, source_id: ([{"block_type": "transcript", "text": "checkout issue mentioned", "timestamp_start": 0.0, "timestamp_end": 1.0, "confidence": 0.8, "metadata": {"provider": "fake"}}], []))
 
@@ -2040,7 +2040,7 @@ def test_epic35_real_video_ingestion_creates_frame_vlm_caption_blocks(monkeypatc
 
 
 def test_epic36_weak_vlm_answer_triggers_one_refined_follow_up(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     project = client.post("/api/projects", json={"name": "VLM Retry"}).json()
     insert_visual_source(project["id"], "visual-retry")
     vlm = SequenceVLM(
@@ -2067,7 +2067,7 @@ def test_epic36_weak_vlm_answer_triggers_one_refined_follow_up(monkeypatch):
 
 
 def test_epic36_strong_vlm_answer_does_not_retry(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     project = client.post("/api/projects", json={"name": "VLM No Retry"}).json()
     insert_visual_source(project["id"], "visual-strong")
     vlm = SequenceVLM(
@@ -2092,7 +2092,7 @@ def test_epic36_strong_vlm_answer_does_not_retry(monkeypatch):
 
 
 def test_epic36_ocr_vlm_conflict_is_reported(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     project = client.post("/api/projects", json={"name": "VLM Conflict"}).json()
     insert_visual_source(project["id"], "visual-conflict", ocr_text="Login Service connects to Token Store.")
     vlm = SequenceVLM([("The authentication issue is a fruit basket checkout screen.", 0.9)])
@@ -2111,7 +2111,7 @@ def test_epic36_ocr_vlm_conflict_is_reported(monkeypatch):
 
 
 def test_epic38_structured_llm_orchestrator_accepts_only_bounded_tools(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     llm = FakeLLM(
         [
             {
@@ -2132,7 +2132,7 @@ def test_epic38_structured_llm_orchestrator_accepts_only_bounded_tools(monkeypat
 
 
 def test_epic38_unsupported_llm_tool_call_is_rejected(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     llm = FakeLLM([{"actions": [{"tool": "delete_project", "reason": "bad"}], "rationale": "bad"}])
     monkeypatch.setattr(agentic_module, "provider_registry", lambda: LLMOnlyRegistry(llm))
 
@@ -2145,7 +2145,7 @@ def test_epic38_unsupported_llm_tool_call_is_rejected(monkeypatch):
 
 
 def test_epic38_structured_llm_critic_can_recommend_ask_vlm(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     llm = FakeLLM(
         [
             {
@@ -2229,7 +2229,7 @@ def test_epic39_postgres_is_not_required_product_scope():
 
 
 def test_epic41_audio_video_duration_limits_use_ffprobe(monkeypatch):
-    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+    monkeypatch.setenv("APRAG_PROVIDER_MODE", "real")
     media_path = data_dir() / "duration.mp4"
     media_path.write_bytes(b"fake media")
     monkeypatch.setattr(main_module, "media_duration_seconds", lambda path: 16 * 60)
@@ -2353,7 +2353,7 @@ def test_epic45_feedback_and_result_metrics_are_persisted():
 def test_epics46_to_50_final_contract_files_and_audit_checks():
     audit = client.post("/api/acceptance/no-gap-audit").json()
     root = Path(os.environ.get("WORKSPACE_ROOT", "/workspace"))
-    project_root = root / "ragbench-studio" if (root / "ragbench-studio").exists() else root
+    project_root = root / "APRAG-Lab" if (root / "APRAG-Lab").exists() else root
     compose = (project_root / "docker-compose.yml").read_text(encoding="utf-8")
     requirements = (project_root / "apps" / "api" / "requirements.txt").read_text(encoding="utf-8")
 

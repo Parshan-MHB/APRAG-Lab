@@ -3,10 +3,10 @@ set -eu
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
 
-curl -fsS -X POST "$BASE_URL/api/sample-dataset/load" >/tmp/ragbench-sample.json
+curl -fsS -X POST "$BASE_URL/api/sample-dataset/load" >/tmp/APRAG-Lab-sample.json
 PROJECT_ID="$(python - <<'PY'
 import json
-print(json.load(open('/tmp/ragbench-sample.json'))['project']['id'])
+print(json.load(open('/tmp/APRAG-Lab-sample.json'))['project']['id'])
 PY
 )"
 

@@ -16,7 +16,7 @@ PROCESSING_STATES = ("processing", "completed", "failed", "waiting_for_local_mod
 
 
 def disk_warning_threshold_bytes() -> int:
-    return int(os.environ.get("RAGBENCH_DISK_WARNING_BYTES", str(1_000_000_000)))
+    return int(os.environ.get("APRAG_DISK_WARNING_BYTES", str(1_000_000_000)))
 
 
 def disk_status() -> dict[str, object]:

@@ -29,8 +29,8 @@ class VectorStoreAdapter(Protocol):
 
 def _collection_name(project_id: str, kb_version: str | None = None) -> str:
     suffix = kb_version or "active"
-    safe = re.sub(r"[^A-Za-z0-9_-]+", "-", f"ragbench-{project_id}-{suffix}")[:60].strip("-")
-    return safe or "ragbench-active"
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "-", f"APRAG-Lab-{project_id}-{suffix}")[:60].strip("-")
+    return safe or "APRAG-Lab-active"
 
 
 def vector_metadata(metadata: dict[str, Any]) -> dict[str, str | int | float | bool]:
@@ -276,7 +276,7 @@ class QdrantVectorStoreAdapter(InMemoryVectorStore):
 
 
 def selected_vector_store(project_id: str, kb_version: str | None = None) -> VectorStoreAdapter:
-    name = os.environ.get("RAGBENCH_VECTOR_STORE", "chroma").strip().lower()
+    name = os.environ.get("APRAG_VECTOR_STORE", "chroma").strip().lower()
     if name == "qdrant":
         return QdrantVectorStoreAdapter(project_id=project_id, kb_version=kb_version)
     if name == "sqlite":
@@ -418,12 +418,12 @@ def adapter_status() -> dict[str, Any]:
             "llama_cpp": {"provider": "llama.cpp", "container": "api-or-runtime-profile"},
         },
         "ocr": {
-            "tesseract": {"provider": "tesseract", "runtime": os.environ.get("RAGBENCH_MEDIA_RUNTIME", "container")},
+            "tesseract": {"provider": "tesseract", "runtime": os.environ.get("APRAG_MEDIA_RUNTIME", "container")},
             "easyocr": {"provider": "easyocr", "runtime": "unsupported-by-default"},
         },
         "transcription": {
-            "whisper_cpp": {"provider": "whisper.cpp", "runtime": os.environ.get("RAGBENCH_MEDIA_RUNTIME", "container")},
-            "faster_whisper": {"provider": "faster-whisper", "runtime": os.environ.get("RAGBENCH_MEDIA_RUNTIME", "container")},
+            "whisper_cpp": {"provider": "whisper.cpp", "runtime": os.environ.get("APRAG_MEDIA_RUNTIME", "container")},
+            "faster_whisper": {"provider": "faster-whisper", "runtime": os.environ.get("APRAG_MEDIA_RUNTIME", "container")},
         },
     }
     status["paid_cloud_extensions"] = extension_settings()["paid_cloud_extensions"]

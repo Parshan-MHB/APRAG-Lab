@@ -96,7 +96,7 @@ def host_memory_bytes() -> int | None:
 
 
 def free_disk_bytes(path: str | Path | None = None) -> int:
-    target = Path(path or os.environ.get("RAGBENCH_RESOURCE_CHECK_PATH", "/"))
+    target = Path(path or os.environ.get("APRAG_RESOURCE_CHECK_PATH", "/"))
     if not target.exists():
         target = Path("/")
     return shutil.disk_usage(target).free
@@ -112,7 +112,7 @@ def available_resources() -> dict[str, Any]:
         "memory_bytes": memory,
         "free_disk_gib": round(disk / GIB, 2),
         "memory_gib": None if memory is None else round(memory / GIB, 2),
-        "disk_check_path": os.environ.get("RAGBENCH_RESOURCE_CHECK_PATH", "/"),
+        "disk_check_path": os.environ.get("APRAG_RESOURCE_CHECK_PATH", "/"),
     }
 
 
@@ -144,7 +144,7 @@ def max_feasible_profile(resources: dict[str, Any] | None = None) -> str | None:
 
 
 def requested_profile_name() -> str:
-    return os.environ.get("RAGBENCH_MODEL_PROFILE", "auto").strip().lower() or "auto"
+    return os.environ.get("APRAG_MODEL_PROFILE", "auto").strip().lower() or "auto"
 
 
 def selected_profile_name(resources: dict[str, Any] | None = None) -> str:
@@ -159,7 +159,7 @@ def selected_profile(resources: dict[str, Any] | None = None) -> ModelProfile:
 
 
 def configured_models_for_bootstrap(resources: dict[str, Any] | None = None) -> list[str]:
-    configured = os.environ.get("RAGBENCH_OLLAMA_MODELS")
+    configured = os.environ.get("APRAG_OLLAMA_MODELS")
     if configured:
         return [model.strip() for model in configured.split(",") if model.strip()]
     return list(selected_profile(resources).models)
@@ -190,7 +190,7 @@ def preflight_report(resources: dict[str, Any] | None = None) -> dict[str, Any]:
         "warnings": warnings,
         "dynamic_flow": {
             "first_launch": "Install Ollama on the host laptop, pull the selected profile models, then start Docker Compose for the app.",
-            "upgrade_path": "Raise RAGBENCH_MODEL_PROFILE to standard or high_quality after confirming the host laptop can run those models.",
+            "upgrade_path": "Raise APRAG_MODEL_PROFILE to standard or high_quality after confirming the host laptop can run those models.",
             "blocked_behavior": "Docker memory does not block host Ollama; missing models are reported with ollama pull remediation.",
         },
     }

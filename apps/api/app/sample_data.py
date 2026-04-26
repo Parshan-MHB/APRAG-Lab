@@ -120,7 +120,7 @@ def now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def create_sample_dataset(name: str = "RAGBench Sample Dataset") -> dict[str, Any]:
+def create_sample_dataset(name: str = "APRAG-Lab Sample Dataset") -> dict[str, Any]:
     project_id = str(uuid.uuid4())
     timestamp = now_iso()
     project_path = data_dir() / "projects" / project_id

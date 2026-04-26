@@ -12,14 +12,14 @@ from typing import Any
 
 
 def data_dir() -> Path:
-    return Path(os.environ.get("RAGBENCH_HOST_DATA_DIR", Path.cwd() / "data")).resolve()
+    return Path(os.environ.get("APRAG_HOST_DATA_DIR", Path.cwd() / "data")).resolve()
 
 
 def safe_path(relative_path: str) -> Path:
     root = data_dir()
     target = (root / relative_path).resolve()
     if root != target and root not in target.parents:
-        raise RuntimeError(f"Path escapes RAGBENCH_HOST_DATA_DIR: {relative_path}")
+        raise RuntimeError(f"Path escapes APRAG_HOST_DATA_DIR: {relative_path}")
     return target
 
 
@@ -34,9 +34,9 @@ def run(command: list[str], timeout: int = 900) -> subprocess.CompletedProcess[s
 def transcribe_with_faster_whisper(path: Path) -> dict[str, Any]:
     from faster_whisper import WhisperModel
 
-    model_name = os.environ.get("RAGBENCH_FASTER_WHISPER_MODEL", "large-v3-turbo")
-    device = os.environ.get("RAGBENCH_WHISPER_DEVICE", "cpu")
-    compute_type = os.environ.get("RAGBENCH_WHISPER_COMPUTE_TYPE", "int8")
+    model_name = os.environ.get("APRAG_FASTER_WHISPER_MODEL", "large-v3-turbo")
+    device = os.environ.get("APRAG_WHISPER_DEVICE", "cpu")
+    compute_type = os.environ.get("APRAG_WHISPER_COMPUTE_TYPE", "int8")
     model = WhisperModel(model_name, device=device, compute_type=compute_type)
     segments, info = model.transcribe(str(path), vad_filter=True)
     return {
@@ -106,7 +106,7 @@ def health() -> dict[str, Any]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "RAGBenchHostMedia/1.0"
+    server_version = "APRAGLabHostMedia/1.0"
 
     def log_message(self, fmt: str, *args: Any) -> None:
         print(f"host-media {self.address_string()} {fmt % args}", flush=True)
@@ -189,12 +189,12 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Host media runtime for RAGBench Studio.")
-    parser.add_argument("--host", default=os.environ.get("RAGBENCH_HOST_MEDIA_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.environ.get("RAGBENCH_HOST_MEDIA_PORT", "8765")))
+    parser = argparse.ArgumentParser(description="Host media runtime for APRAG-Lab.")
+    parser.add_argument("--host", default=os.environ.get("APRAG_HOST_MEDIA_HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("APRAG_HOST_MEDIA_PORT", "8765")))
     args = parser.parse_args()
-    print(f"RAGBench host media runtime listening on http://{args.host}:{args.port}", flush=True)
-    print(f"RAGBENCH_HOST_DATA_DIR={data_dir()}", flush=True)
+    print(f"APRAG-Lab host media runtime listening on http://{args.host}:{args.port}", flush=True)
+    print(f"APRAG_HOST_DATA_DIR={data_dir()}", flush=True)
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
 
 

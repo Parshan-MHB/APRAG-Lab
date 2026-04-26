@@ -40,7 +40,7 @@ def scrub(value: Any) -> Any:
 
 
 def local_log_path() -> Path:
-    path = data_dir() / "logs" / "ragbench.log"
+    path = data_dir() / "logs" / "APRAG-Lab.log"
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -235,11 +235,11 @@ def dependency_status() -> dict[str, Any]:
             "warning": "" if ollama.get("available") else "Host Ollama is unavailable; install/start Ollama on the laptop and keep it listening on port 11434.",
             "models": ollama.get("models", {}),
         },
-        "llm": {"provider": "ollama", "available": bool(ollama.get("models", {}).get(os.environ.get("RAGBENCH_DEFAULT_OLLAMA_LLM", DEFAULT_OLLAMA_LLM_MODEL), {}).get("installed")), "mode": health["mode"]},
-        "vlm": {"provider": "ollama_vlm", "available": bool(ollama.get("models", {}).get(os.environ.get("RAGBENCH_DEFAULT_OLLAMA_VLM", DEFAULT_OLLAMA_VLM_MODEL), {}).get("installed")), "mode": health["mode"]},
+        "llm": {"provider": "ollama", "available": bool(ollama.get("models", {}).get(os.environ.get("APRAG_DEFAULT_OLLAMA_LLM", DEFAULT_OLLAMA_LLM_MODEL), {}).get("installed")), "mode": health["mode"]},
+        "vlm": {"provider": "ollama_vlm", "available": bool(ollama.get("models", {}).get(os.environ.get("APRAG_DEFAULT_OLLAMA_VLM", DEFAULT_OLLAMA_VLM_MODEL), {}).get("installed")), "mode": health["mode"]},
         "embeddings": {
             "provider": "deterministic_lexical" if health["deterministic_fallback"] else "ollama_embeddings",
-            "available": True if health["deterministic_fallback"] else bool(ollama.get("models", {}).get(os.environ.get("RAGBENCH_DEFAULT_EMBEDDINGS", DEFAULT_EMBEDDING_MODEL), {}).get("installed")),
+            "available": True if health["deterministic_fallback"] else bool(ollama.get("models", {}).get(os.environ.get("APRAG_DEFAULT_EMBEDDINGS", DEFAULT_EMBEDDING_MODEL), {}).get("installed")),
             "mode": health["mode"],
         },
         "transcription": health["media"].get("transcription", health["media"]["faster_whisper"]),

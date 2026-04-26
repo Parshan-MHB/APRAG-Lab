@@ -17,7 +17,7 @@ ORIGINAL_PLAN_SECTIONS = [str(index) for index in range(1, 36)]
 
 
 def _project_root(repo_root: Path) -> Path:
-    nested = repo_root / "ragbench-studio"
+    nested = repo_root / "APRAG-Lab"
     if nested.exists():
         return nested
     return repo_root

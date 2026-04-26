@@ -75,13 +75,13 @@ class RedisRQJobRunner(LocalJobRunner):
 
     def enqueue(self, project_id: str, job_type: str, work: Callable[[], dict[str, Any]] | None = None) -> dict[str, Any]:
         job_id = create_job(project_id, status="queued", job_type=job_type)
-        record_job_event(job_id, project_id, "rq_queued", "queued", f"{job_type} job queued in Redis/RQ.", {"queue": "ragbench"})
+        record_job_event(job_id, project_id, "rq_queued", "queued", f"{job_type} job queued in Redis/RQ.", {"queue": "APRAG-Lab"})
         try:
             from redis import Redis
             from rq import Queue
 
             connection = Redis.from_url(os.environ.get("REDIS_URL", "redis://redis:6379/0"))
-            rq_job = Queue("ragbench", connection=connection).enqueue("app.worker.process_job_by_id", job_id)
+            rq_job = Queue("APRAG-Lab", connection=connection).enqueue("app.worker.process_job_by_id", job_id)
             job = get_job(job_id)
             job["queue_backend"] = self.contract_name
             job["rq_job_id"] = rq_job.id
@@ -96,7 +96,7 @@ class CeleryJobRunner(LocalJobRunner):
 
     def enqueue(self, project_id: str, job_type: str, work: Callable[[], dict[str, Any]] | None = None) -> dict[str, Any]:
         job_id = create_job(project_id, status="queued", job_type=job_type)
-        record_job_event(job_id, project_id, "celery_queued", "queued", f"{job_type} job queued in Celery.", {"queue": "ragbench"})
+        record_job_event(job_id, project_id, "celery_queued", "queued", f"{job_type} job queued in Celery.", {"queue": "APRAG-Lab"})
         try:
             from .worker import process_job_by_id_task
 

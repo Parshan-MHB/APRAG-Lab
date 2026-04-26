@@ -1,7 +1,7 @@
 const http = require('node:http');
 
-const apiUrl = process.env.RAGBENCH_API_URL || 'http://localhost:8000/health';
-const webUrl = process.env.RAGBENCH_WEB_URL || 'http://localhost:5173';
+const apiUrl = process.env.APRAG_API_URL || 'http://localhost:8000/health';
+const webUrl = process.env.APRAG_WEB_URL || 'http://localhost:5173';
 
 function smoke() {
   http.get(apiUrl, (res) => {

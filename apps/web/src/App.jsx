@@ -131,7 +131,7 @@ function logClientEvent(level, eventType, payload = {}) {
     payload,
   };
   const writer = level === 'error' ? console.error : level === 'warn' ? console.warn : console.info;
-  if (CLIENT_LOG_CONSOLE) writer('[ragbench]', entry);
+  if (CLIENT_LOG_CONSOLE) writer('[APRAG-Lab]', entry);
   if (CLIENT_LOG_TO_API && eventType !== 'frontend_log_forward_failed') {
     fetch(`${API_BASE}/api/diagnostics/frontend-event`, {
       method: 'POST',
@@ -139,7 +139,7 @@ function logClientEvent(level, eventType, payload = {}) {
       body: JSON.stringify({ level, event_type: eventType, payload }),
       keepalive: true,
     }).catch((error) => {
-      console.warn('[ragbench]', {
+      console.warn('[APRAG-Lab]', {
         created_at: new Date().toISOString(),
         level: 'warn',
         event_type: 'frontend_log_forward_failed',
@@ -1286,7 +1286,7 @@ export function App() {
     <main>
       <header className="topbar">
         <div>
-          <h1>RAGBench Studio</h1>
+          <h1>APRAG-Lab</h1>
           <p>Local multimodal RAG benchmark workspace</p>
         </div>
         <button onClick={() => refreshProject()} disabled={busy || !project} title="Refresh workspace">

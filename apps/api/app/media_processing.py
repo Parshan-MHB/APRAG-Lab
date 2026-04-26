@@ -14,7 +14,7 @@ from .runtime_adapters import normalize_transcript_output
 
 
 def deterministic_media_enabled() -> bool:
-    return os.environ.get("RAGBENCH_PROVIDER_MODE", "real").strip().lower() == "deterministic"
+    return os.environ.get("APRAG_PROVIDER_MODE", "real").strip().lower() == "deterministic"
 
 
 def media_duration_seconds(path: Path) -> float | None:

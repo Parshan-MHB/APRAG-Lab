@@ -18,19 +18,19 @@ services:
       - DATA_DIR=/app/data
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - RAGBENCH_MEDIA_RUNTIME=host
-      - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+      - APRAG_MEDIA_RUNTIME=host
+      - APRAG_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
       - CHROMA_HOST=chroma
       - CHROMA_PORT=8000
       - QDRANT_URL=http://qdrant:6333
-      - RAGBENCH_PROVIDER_MODE=real
-      - RAGBENCH_MODEL_PROFILE=auto
-      - RAGBENCH_QUEUE_MODE=local
-      - RAGBENCH_VECTOR_STORE=chroma
-      - RAGBENCH_OLLAMA_NUM_PREDICT=512
-      - RAGBENCH_VLM_NUM_PREDICT=256
-      - RAGBENCH_OBSERVABILITY_ENABLED=true
-      - RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
+      - APRAG_PROVIDER_MODE=real
+      - APRAG_MODEL_PROFILE=auto
+      - APRAG_QUEUE_MODE=local
+      - APRAG_VECTOR_STORE=chroma
+      - APRAG_OLLAMA_NUM_PREDICT=512
+      - APRAG_VLM_NUM_PREDICT=256
+      - APRAG_OBSERVABILITY_ENABLED=true
+      - APRAG_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
       - OTEL_SERVICE_NAME=aprag-lab-api
       - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
@@ -61,19 +61,19 @@ services:
       - DATA_DIR=/app/data
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - RAGBENCH_MEDIA_RUNTIME=host
-      - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+      - APRAG_MEDIA_RUNTIME=host
+      - APRAG_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
       - CHROMA_HOST=chroma
       - CHROMA_PORT=8000
       - QDRANT_URL=http://qdrant:6333
-      - RAGBENCH_PROVIDER_MODE=real
-      - RAGBENCH_MODEL_PROFILE=auto
-      - RAGBENCH_QUEUE_MODE=local
-      - RAGBENCH_VECTOR_STORE=chroma
-      - RAGBENCH_OLLAMA_NUM_PREDICT=512
-      - RAGBENCH_VLM_NUM_PREDICT=256
-      - RAGBENCH_OBSERVABILITY_ENABLED=true
-      - RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
+      - APRAG_PROVIDER_MODE=real
+      - APRAG_MODEL_PROFILE=auto
+      - APRAG_QUEUE_MODE=local
+      - APRAG_VECTOR_STORE=chroma
+      - APRAG_OLLAMA_NUM_PREDICT=512
+      - APRAG_VLM_NUM_PREDICT=256
+      - APRAG_OBSERVABILITY_ENABLED=true
+      - APRAG_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
       - OTEL_SERVICE_NAME=aprag-lab-worker
       - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
@@ -100,10 +100,10 @@ services:
       - DATA_DIR=/app/data
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - RAGBENCH_MEDIA_RUNTIME=host
-      - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
-      - RAGBENCH_OBSERVABILITY_ENABLED=true
-      - RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
+      - APRAG_MEDIA_RUNTIME=host
+      - APRAG_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+      - APRAG_OBSERVABILITY_ENABLED=true
+      - APRAG_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
       - OTEL_SERVICE_NAME=aprag-lab-rq-worker
       - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
@@ -115,7 +115,7 @@ services:
     volumes:
       - ./apps/api:/app
       - ./data:/app/data
-    command: rq worker ragbench --url redis://redis:6379/0
+    command: rq worker APRAG-Lab --url redis://redis:6379/0
     depends_on:
       redis:
         condition: service_healthy
@@ -128,10 +128,10 @@ services:
       - DATA_DIR=/app/data
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - RAGBENCH_MEDIA_RUNTIME=host
-      - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
-      - RAGBENCH_OBSERVABILITY_ENABLED=true
-      - RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
+      - APRAG_MEDIA_RUNTIME=host
+      - APRAG_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+      - APRAG_OBSERVABILITY_ENABLED=true
+      - APRAG_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
       - OTEL_SERVICE_NAME=aprag-lab-celery-worker
       - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}

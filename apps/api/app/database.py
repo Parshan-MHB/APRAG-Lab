@@ -19,12 +19,12 @@ def data_dir() -> Path:
 
 
 def db_path() -> Path:
-    return data_dir() / "sqlite" / "ragbench.db"
+    return data_dir() / "sqlite" / "APRAG-Lab.db"
 
 
 @contextmanager
 def connect() -> Iterator[sqlite3.Connection]:
-    timeout = float(os.environ.get("RAGBENCH_SQLITE_TIMEOUT", "30"))
+    timeout = float(os.environ.get("APRAG_SQLITE_TIMEOUT", "30"))
     conn = sqlite3.connect(db_path(), timeout=timeout)
     conn.row_factory = sqlite3.Row
     try:

@@ -3,8 +3,8 @@ const { chromium } = require("@playwright/test");
 
 const ROOT = path.resolve(__dirname, "../../..");
 const SAMPLE_DIR = path.join(ROOT, "sample-data", "manual-test-suite");
-const APP_URL = process.env.RAGBENCH_APP_URL || "http://localhost:5173";
-const API_URL = process.env.RAGBENCH_API_URL || "http://localhost:8000";
+const APP_URL = process.env.APRAG_APP_URL || "http://localhost:5173";
+const API_URL = process.env.APRAG_API_URL || "http://localhost:8000";
 
 const sampleFiles = [
   "01_vaccine_administration_event.jpg",
@@ -62,7 +62,7 @@ async function latestReadyPlaywrightProject() {
 }
 
 async function run() {
-  const headed = process.env.RAGBENCH_PLAYWRIGHT_HEADLESS === "0";
+  const headed = process.env.APRAG_PLAYWRIGHT_HEADLESS === "0";
   const browser = await chromium.launch({ headless: !headed, slowMo: headed ? 75 : 0 });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const consoleMessages = [];
@@ -87,7 +87,7 @@ async function run() {
     assert(providerHealth.required_missing.length === 0, "Required provider models are missing");
 
     await page.goto(APP_URL, { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: "RAGBench Studio" }).waitFor({ timeout: 30000 });
+    await page.getByRole("heading", { name: "APRAG-Lab" }).waitFor({ timeout: 30000 });
     await page.getByText("real mode").waitFor({ timeout: 30000 });
     await page.getByText("qwen3:8b:installed").waitFor({ timeout: 30000 });
     await page.getByText("qwen3-vl:4b:installed").waitFor({ timeout: 30000 });
@@ -95,7 +95,7 @@ async function run() {
 
     let project;
     let sources;
-    const reusable = process.env.RAGBENCH_REUSE_LATEST === "1" ? await latestReadyPlaywrightProject() : null;
+    const reusable = process.env.APRAG_REUSE_LATEST === "1" ? await latestReadyPlaywrightProject() : null;
     if (reusable) {
       project = reusable.project;
       sources = reusable.sources;
@@ -153,7 +153,7 @@ async function run() {
 
     await page.locator("#question").fill(question);
     let completedRun;
-    if (process.env.RAGBENCH_REUSE_LATEST_RUN === "1") {
+    if (process.env.APRAG_REUSE_LATEST_RUN === "1") {
       const runs = await api(`/api/projects/${project.id}/runs`);
       assert(runs.length > 0, "No existing runs found to reuse");
       completedRun = await api(`/api/runs/${runs[0].id}`);

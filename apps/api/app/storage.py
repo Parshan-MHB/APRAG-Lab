@@ -17,7 +17,7 @@ ARTIFACT_LAYOUT = {
     "derived_frames": "sources/derived/frames",
     "runs": "runs",
     "exports": "exports",
-    "sqlite": "sqlite/ragbench.db",
+    "sqlite": "sqlite/APRAG-Lab.db",
     "vector_store": "vector_store/chroma",
 }
 
@@ -52,7 +52,7 @@ def relative_to_data_root(path: Path | str) -> str:
 def write_project_manifest(project: dict[str, Any]) -> Path:
     ensure_storage_layout(project["id"])
     path = data_dir() / "projects" / project["id"] / "project.json"
-    payload = scrub({"schema": "ragbench.project.v1", "project": project, "artifact_layout": ensure_storage_layout(project["id"])})
+    payload = scrub({"schema": "APRAG-Lab.project.v1", "project": project, "artifact_layout": ensure_storage_layout(project["id"])})
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     return path
 

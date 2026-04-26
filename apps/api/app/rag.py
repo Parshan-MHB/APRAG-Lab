@@ -264,7 +264,7 @@ def vector_retrieve(
         except ProviderUnavailable:
             raise
         except Exception:
-            if os.environ.get("RAGBENCH_STRICT_VECTOR_STORE", "0") == "1":
+            if os.environ.get("APRAG_STRICT_VECTOR_STORE", "0") == "1":
                 raise
     query_vector = deterministic_vector(question)
     rows = load_retrieval_rows(project_id, metadata_filters)
@@ -459,21 +459,21 @@ def basic_entities(text: str) -> list[str]:
 
 
 def graph_llm_max_chunks() -> int:
-    return max(0, int(os.environ.get("RAGBENCH_GRAPH_LLM_MAX_CHUNKS", "4")))
+    return max(0, int(os.environ.get("APRAG_GRAPH_LLM_MAX_CHUNKS", "4")))
 
 
 def graph_llm_max_summaries() -> int:
-    return max(0, int(os.environ.get("RAGBENCH_GRAPH_LLM_MAX_SUMMARIES", "2")))
+    return max(0, int(os.environ.get("APRAG_GRAPH_LLM_MAX_SUMMARIES", "2")))
 
 
 def graph_llm_timeout() -> float:
-    return max(1.0, float(os.environ.get("RAGBENCH_GRAPH_LLM_TIMEOUT", "15")))
+    return max(1.0, float(os.environ.get("APRAG_GRAPH_LLM_TIMEOUT", "15")))
 
 
 def graph_llm_options() -> dict[str, Any]:
     return {
-        "temperature": float(os.environ.get("RAGBENCH_GRAPH_LLM_TEMPERATURE", "0")),
-        "num_predict": max(32, int(os.environ.get("RAGBENCH_GRAPH_LLM_NUM_PREDICT", "192"))),
+        "temperature": float(os.environ.get("APRAG_GRAPH_LLM_TEMPERATURE", "0")),
+        "num_predict": max(32, int(os.environ.get("APRAG_GRAPH_LLM_NUM_PREDICT", "192"))),
     }
 
 
@@ -598,7 +598,7 @@ def rebuild_project_graph(project_id: str) -> None:
     max_llm_chunks = graph_llm_max_chunks()
     max_llm_summaries = graph_llm_max_summaries()
     print(
-        "ragbench graph rebuild started "
+        "APRAG-Lab graph rebuild started "
         f"project_id={project_id} chunks={len(chunks)} sources={len(set(row['source_id'] for row in block_rows))} "
         f"llm_chunks={max_llm_chunks} llm_summaries={max_llm_summaries}",
         flush=True,
@@ -719,7 +719,7 @@ def rebuild_project_graph(project_id: str) -> None:
                 ),
             )
     print(
-        "ragbench graph rebuild finished "
+        "APRAG-Lab graph rebuild finished "
         f"project_id={project_id} entities={len(entity_ids)} facts={len(structured_facts)} summaries={len(summary_records)}",
         flush=True,
     )
@@ -877,7 +877,7 @@ def run_pipeline(
     selected_source_ids: list[str] | None = None,
     metadata_filters: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if os.environ.get("RAGBENCH_USE_LANGGRAPH", "1") == "1":
+    if os.environ.get("APRAG_USE_LANGGRAPH", "1") == "1":
         from .workflow import execute_pipeline_graph
 
         return execute_pipeline_graph(

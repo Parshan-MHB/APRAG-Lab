@@ -15,7 +15,7 @@ try:
 except Exception:  # pragma: no cover - dependency health reports this separately
     Celery = None
 
-celery_app = Celery("ragbench", broker=os.environ.get("REDIS_URL", "redis://redis:6379/0"), backend=os.environ.get("REDIS_URL", "redis://redis:6379/0")) if Celery else None
+celery_app = Celery("APRAG-Lab", broker=os.environ.get("REDIS_URL", "redis://redis:6379/0"), backend=os.environ.get("REDIS_URL", "redis://redis:6379/0")) if Celery else None
 setup_observability(os.environ.get("OTEL_SERVICE_NAME", "aprag-lab-worker"))
 
 RUNNERS = {
@@ -39,21 +39,21 @@ def process_job(job: dict) -> None:
             payload = job["payload"]
             record_job_event(job["id"], job["project_id"], "source_upload_started", "running", "Queued source upload processing started.")
             print(
-                f"ragbench worker processing source_upload job_id={job['id']} project_id={job['project_id']} sources={len(payload.get('source_ids', []))}",
+                f"APRAG-Lab worker processing source_upload job_id={job['id']} project_id={job['project_id']} sources={len(payload.get('source_ids', []))}",
                 flush=True,
             )
             result = process_staged_sources(job["project_id"], payload.get("source_ids", []), payload.get("change_type", "append_sources"))
             record_job_event(job["id"], job["project_id"], "source_upload_complete", "succeeded", "Queued source upload processed.", result)
-            print(f"ragbench worker finished source_upload job_id={job['id']}", flush=True)
+            print(f"APRAG-Lab worker finished source_upload job_id={job['id']}", flush=True)
         elif job["job_type"] == "model_pull":
             from .main import execute_model_pull_job
 
             print(
-                f"ragbench worker processing model_pull job_id={job['id']} project_id={job['project_id']} models={job['payload'].get('models', [])}",
+                f"APRAG-Lab worker processing model_pull job_id={job['id']} project_id={job['project_id']} models={job['payload'].get('models', [])}",
                 flush=True,
             )
             execute_model_pull_job(job)
-            print(f"ragbench worker finished model_pull job_id={job['id']}", flush=True)
+            print(f"APRAG-Lab worker finished model_pull job_id={job['id']}", flush=True)
         elif job["job_type"] == "ingestion":
             from .job_execution import create_ingestion_job
 
@@ -63,7 +63,7 @@ def process_job(job: dict) -> None:
         else:
             record_job_event(job["id"], job["project_id"], "unknown_job_type", "failed", f"Unknown job type: {job['job_type']}")
     except Exception as exc:
-        print(f"ragbench worker failed job_id={job['id']} type={job['job_type']} error={exc}", flush=True)
+        print(f"APRAG-Lab worker failed job_id={job['id']} type={job['job_type']} error={exc}", flush=True)
         record_job_event(job["id"], job["project_id"], "job_failed", "failed", str(exc), run_id=job.get("run_id"))
 
 
@@ -100,12 +100,12 @@ def main() -> None:
 
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
-    print(f"ragbench worker ready: {runner.contract_name}", flush=True)
+    print(f"APRAG-Lab worker ready: {runner.contract_name}", flush=True)
     while running:
         job = fetch_next_queued_job()
         if job:
             record_job_event(job["id"], job["project_id"], "queue_worker_started", "running", "Queued job picked up by worker.", run_id=job.get("run_id"))
-            print(f"ragbench worker picked job_id={job['id']} type={job['job_type']} project_id={job['project_id']}", flush=True)
+            print(f"APRAG-Lab worker picked job_id={job['id']} type={job['job_type']} project_id={job['project_id']}", flush=True)
             process_job(job)
             continue
         time.sleep(1)

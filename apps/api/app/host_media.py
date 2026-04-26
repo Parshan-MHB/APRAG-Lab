@@ -12,11 +12,11 @@ from .providers import ProviderUnavailable
 
 
 def host_media_enabled() -> bool:
-    return os.environ.get("RAGBENCH_MEDIA_RUNTIME", "container").strip().lower() == "host"
+    return os.environ.get("APRAG_MEDIA_RUNTIME", "container").strip().lower() == "host"
 
 
 def host_media_base_url() -> str:
-    return os.environ.get("RAGBENCH_HOST_MEDIA_BASE_URL", "http://host.docker.internal:8765").rstrip("/")
+    return os.environ.get("APRAG_HOST_MEDIA_BASE_URL", "http://host.docker.internal:8765").rstrip("/")
 
 
 def relative_data_path(path: Path) -> str:
@@ -31,7 +31,7 @@ class HostMediaClient:
 
     def __init__(self, base_url: str | None = None, timeout: float | None = None):
         self.base_url = (base_url or host_media_base_url()).rstrip("/")
-        self.timeout = timeout or float(os.environ.get("RAGBENCH_HOST_MEDIA_TIMEOUT", "900"))
+        self.timeout = timeout or float(os.environ.get("APRAG_HOST_MEDIA_TIMEOUT", "900"))
 
     def _post(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
         request = urllib.request.Request(
@@ -51,7 +51,7 @@ class HostMediaClient:
 
     def health(self) -> dict[str, Any]:
         try:
-            with urllib.request.urlopen(f"{self.base_url}/health", timeout=float(os.environ.get("RAGBENCH_HOST_MEDIA_HEALTH_TIMEOUT", "10"))) as response:
+            with urllib.request.urlopen(f"{self.base_url}/health", timeout=float(os.environ.get("APRAG_HOST_MEDIA_HEALTH_TIMEOUT", "10"))) as response:
                 return json.loads(response.read().decode("utf-8"))
         except Exception as exc:
             return {
