@@ -709,14 +709,97 @@ form > button[type="submit"] {
   gap: 12px;
 }
 
-.settings-scroll {
-  max-height: 700px;
+.settings-view-tabs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-view-tabs button {
+  background: #f8fafb;
+  border-color: #d7e1e7;
+  color: #18222d;
+  min-height: 38px;
+}
+
+.settings-view-tabs button.active {
+  background: #edf6f8;
+  border-color: #1f5f75;
+  box-shadow: inset 0 0 0 1px #1f5f75;
+  color: #17475a;
+}
+
+.settings-actions,
+.settings-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section {
+  background: #f8fafb;
+  border: 1px solid #d7e1e7;
+  border-radius: 7px;
+  padding: 12px;
+}
+
+.settings-section h3 {
+  font-size: 14px;
+  margin: 0 0 9px;
+}
+
+.settings-section summary {
+  cursor: pointer;
+  font-weight: 700;
+  list-style-position: inside;
+}
+
+.settings-section[open] summary {
+  margin-bottom: 9px;
+}
+
+.settings-section p {
+  color: #586773;
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+
+.settings-info {
+  max-height: 680px;
   overflow: auto;
   padding-right: 4px;
 }
 
+.settings-info details {
+  background: #f8fafb;
+  border: 1px solid #d7e1e7;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.settings-info summary {
+  cursor: pointer;
+  font-weight: 700;
+  list-style-position: inside;
+  padding: 10px 12px;
+}
+
+.settings-info details[open] summary {
+  border-bottom: 1px solid #d7e1e7;
+}
+
 .settings-grid {
   margin-bottom: 8px;
+}
+
+.settings-section .settings-grid,
+.settings-info .settings-grid {
+  margin: 0;
+  padding: 10px;
+}
+
+.settings-section .settings-grid {
+  padding: 0;
 }
 
 .settings-grid div {
@@ -724,10 +807,7 @@ form > button[type="submit"] {
 }
 
 .settings-form {
-  background: #f8fafb;
-  border: 1px solid #d7e1e7;
-  border-radius: 7px;
-  padding: 12px;
+  margin: 0;
 }
 
 .history-row.active {

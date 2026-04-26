@@ -240,23 +240,30 @@ describe('RAGBench Studio UI', () => {
     expect(screen.getByText('projects/p1/sources/original/auth.txt')).toBeInTheDocument();
     expect(screen.getByText('Extracted Evidence Blocks')).toBeInTheDocument();
     expect(screen.getByText('Authentication uses API Gateway and Token Store.')).toBeInTheDocument();
-    expect(screen.getAllByText('placeholder').length).toBeGreaterThan(0);
-    expect(screen.getByText('Real VLM adapter not configured.')).toBeInTheDocument();
-    expect(screen.getByText('recommended models')).toBeInTheDocument();
-    expect(screen.getByText('llm: qwen3:8b')).toBeInTheDocument();
-    expect(screen.getByText('overrides')).toBeInTheDocument();
-    expect(screen.getByText('8 top-k chunks')).toBeInTheDocument();
-    expect(screen.getByText('chroma, qdrant')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Actions' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('link', { name: 'Qdrant Dashboard' })).toHaveAttribute('target', '_blank');
     expect(screen.getByRole('link', { name: 'Chroma API Docs' })).toHaveAttribute('href', 'http://localhost:8001/docs');
     expect(screen.getByRole('link', { name: 'SQLite Query Console' })).toHaveAttribute('href', 'http://localhost:8000/api/database/sqlite-dashboard');
     expect(screen.getByRole('link', { name: 'Redis Commander' })).toHaveAttribute('href', 'http://localhost:8083');
+
+    await user.click(screen.getByRole('tab', { name: 'System info' }));
+    expect(screen.getAllByText('placeholder').length).toBeGreaterThan(0);
+    expect(screen.getByText('Real VLM adapter not configured.')).toBeInTheDocument();
+    await user.click(screen.getByText('Model Recommendations'));
+    expect(screen.getByText('recommended models')).toBeInTheDocument();
+    expect(screen.getByText('llm: qwen3:8b')).toBeInTheDocument();
+    expect(screen.getByText('overrides')).toBeInTheDocument();
+    await user.click(screen.getByText('Reliability And Adapters'));
+    expect(screen.getByText('8 top-k chunks')).toBeInTheDocument();
+    expect(screen.getByText('chroma, qdrant')).toBeInTheDocument();
   });
 
   it('saves real model configuration from Settings UI', async () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await screen.findByText('Model Configuration');
+    await user.click(screen.getByText('Model Configuration'));
     const llm = await screen.findByLabelText('LLM model');
     await user.clear(llm);
     await user.type(llm, 'qwen3:32b');

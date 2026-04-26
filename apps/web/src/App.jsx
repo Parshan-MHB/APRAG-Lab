@@ -525,6 +525,7 @@ function SettingsPanel({ settings, dependencies, adapters, reliability, provider
   const modelManagement = settings?.ollama_model_management || {};
   const missingModels = modelManagement.missing_models || [];
   const pullActive = ['queued', 'running'].includes(modelPullJob?.status);
+  const [settingsView, setSettingsView] = useState('actions');
   const [draft, setDraft] = useState({
     llm_model: settings?.overrides?.llm_model || recommended.llm_model || 'qwen3:8b',
     vlm_model: settings?.overrides?.vlm_model || recommended.vlm_model || 'qwen3-vl:4b',
@@ -553,166 +554,210 @@ function SettingsPanel({ settings, dependencies, adapters, reliability, provider
   );
   return (
     <div className="settings-panel">
-      <div className="settings-scroll">
-      <div className="settings-grid">
-        {Object.entries(merged).map(([name, value]) => (
-          <div key={name}>
-            <strong>{name}</strong>
-            <span>{value.provider}</span>
-            <span>{value.available ? 'available' : 'unavailable'}</span>
-            {value.version && <span>{value.version}</span>}
-            {value.free_bytes && <span>{value.free_bytes} bytes free</span>}
-            {value.warning && <small>{value.warning}</small>}
-          </div>
-        ))}
+      <div className="settings-view-tabs" role="tablist" aria-label="Settings sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={settingsView === 'actions'}
+          className={settingsView === 'actions' ? 'active' : ''}
+          onClick={() => setSettingsView('actions')}
+        >
+          Actions
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={settingsView === 'info'}
+          className={settingsView === 'info' ? 'active' : ''}
+          onClick={() => setSettingsView('info')}
+        >
+          System info
+        </button>
       </div>
-      <div className="settings-grid compact">
-        <div>
-          <strong>recommended models</strong>
-          <span>profile: {recommended.profile || resourceProfile?.selected_profile || 'unknown'}</span>
-          <span>llm: {recommended.llm_model || 'unavailable'}</span>
-          <span>vlm: {recommended.vlm_model || 'unavailable'}</span>
-          <span>embeddings: {recommended.embedding_model || 'unavailable'}</span>
-          <small>{recommended.models_to_pull?.length ? `pull: ${recommended.models_to_pull.join(', ')}` : 'No model pull list reported.'}</small>
-        </div>
-        <div>
-          <strong>overrides</strong>
-          {Object.keys(overrides).length ? (
-            Object.entries(overrides).map(([name, value]) => <span key={name}>{name}: {formatSettingValue(value)}</span>)
-          ) : (
-            <span>none</span>
-          )}
-        </div>
-      </div>
-      {reliability?.defaults && (
-        <div className="settings-grid compact">
-          <div>
-            <strong>performance gates</strong>
-            <span>{reliability.defaults.top_k_chunks} top-k chunks</span>
-            <span>{reliability.defaults.reranked_chunks} reranked chunks</span>
-            <small>{reliability.disk.warning ? 'disk warning active' : 'disk space ok'}</small>
-          </div>
-          <div>
-            <strong>processing states</strong>
-            <span>{reliability.processing_states.join(', ')}</span>
-          </div>
-        </div>
-      )}
-      {adapters && Object.keys(adapters).length > 0 && (
-        <div className="settings-grid compact">
-          {Object.entries(adapters).map(([group, choices]) => (
-            <div key={group}>
-              <strong>{group}</strong>
-              <span>{Object.keys(choices).join(', ')}</span>
+
+      {settingsView === 'actions' ? (
+        <div className="settings-actions" role="tabpanel">
+          <section className="settings-section">
+            <h3>Model Actions</h3>
+            <div className="settings-grid compact">
+              <div>
+                <strong>host Ollama models</strong>
+                <span>{modelManagement.reachable ? 'reachable' : 'unreachable'}</span>
+                <span>{missingModels.length ? `missing: ${missingModels.join(', ')}` : 'all configured models installed'}</span>
+                {modelManagement.warning && <small>{modelManagement.warning}</small>}
+              </div>
+              <div>
+                <strong>model pull</strong>
+                <span>{pullActive ? `${modelPullJob.status}` : modelManagement.safe_to_pull ? 'ready' : 'blocked'}</span>
+                <small>{modelManagement.pull_commands?.length ? modelManagement.pull_commands.join(', ') : 'No pull command needed.'}</small>
+                <button type="button" disabled={!missingModels.length || !modelManagement.safe_to_pull || pullActive} onClick={() => onPullModels(missingModels)}>
+                  Pull missing models
+                </button>
+              </div>
             </div>
-          ))}
+            {modelPullEvents?.length > 0 && (
+              <ol className="trace-list compact">
+                {modelPullEvents.map((event) => (
+                  <li key={event.id || `${event.event_type}-${event.created_at}`}>
+                    <strong>{event.event_type}</strong>
+                    <span>{event.status}</span>
+                    <small>{event.message}</small>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          {databaseDashboards?.dashboards?.length > 0 && (
+            <section className="settings-section">
+              <h3>Database Tools</h3>
+              <p>{databaseDashboards.warning}</p>
+              <div className="export-row dashboard-links">
+                {databaseDashboards.dashboards.map((dashboard) => (
+                  <a href={dashboard.url} key={dashboard.id} target="_blank" rel="noreferrer">
+                    {dashboard.label}
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <details className="settings-section settings-details">
+            <summary>Model Configuration</summary>
+            <form className="settings-form" onSubmit={(event) => { event.preventDefault(); onSaveSettings(draft); }}>
+              <label className="field-label" htmlFor="llm-model">LLM model</label>
+              <input id="llm-model" value={draft.llm_model} onChange={(event) => setDraft({ ...draft, llm_model: event.target.value })} />
+              <label className="field-label" htmlFor="vlm-model">VLM model</label>
+              <input id="vlm-model" value={draft.vlm_model} onChange={(event) => setDraft({ ...draft, vlm_model: event.target.value })} />
+              <label className="field-label" htmlFor="embedding-model">Embedding model</label>
+              <input id="embedding-model" value={draft.embedding_model} onChange={(event) => setDraft({ ...draft, embedding_model: event.target.value })} />
+              <label className="field-label" htmlFor="transcription-provider">Transcription provider</label>
+              <select id="transcription-provider" value={draft.transcription_provider} onChange={(event) => setDraft({ ...draft, transcription_provider: event.target.value })}>
+                <option value="faster-whisper">faster-whisper</option>
+                <option value="whisper.cpp">whisper.cpp</option>
+              </select>
+              <label className="field-label" htmlFor="transcription-model">Transcription model</label>
+              <input id="transcription-model" value={draft.transcription_model} onChange={(event) => setDraft({ ...draft, transcription_model: event.target.value })} />
+              <label className="field-label" htmlFor="vector-store">Vector store</label>
+              <select id="vector-store" value={draft.vector_store} onChange={(event) => setDraft({ ...draft, vector_store: event.target.value })}>
+                <option value="chroma">Chroma</option>
+                <option value="qdrant">Qdrant</option>
+              </select>
+              <label className="field-label" htmlFor="provider-mode">Provider mode</label>
+              <select id="provider-mode" value={draft.provider_mode} onChange={(event) => setDraft({ ...draft, provider_mode: event.target.value })}>
+                <option value="real">real</option>
+                <option value="deterministic">deterministic</option>
+              </select>
+              <button type="submit"><Settings size={16} /> Save model settings</button>
+            </form>
+          </details>
         </div>
-      )}
-      {databaseDashboards?.dashboards?.length > 0 && (
-        <div className="settings-grid compact">
-          <div>
-            <strong>database dashboards</strong>
-            <span>{databaseDashboards.warning}</span>
-          </div>
-          <div className="wide">
-            <strong>open query tools</strong>
-            <div className="export-row">
-              {databaseDashboards.dashboards.map((dashboard) => (
-                <a href={dashboard.url} key={dashboard.id} target="_blank" rel="noreferrer">
-                  {dashboard.label}
-                </a>
+      ) : (
+        <div className="settings-info" role="tabpanel">
+          <details open>
+            <summary>Provider Availability</summary>
+            <div className="settings-grid">
+              {Object.entries(merged).map(([name, value]) => (
+                <div key={name}>
+                  <strong>{name}</strong>
+                  <span>{value.provider}</span>
+                  <span>{value.available ? 'available' : 'unavailable'}</span>
+                  {value.version && <span>{value.version}</span>}
+                  {value.free_bytes && <span>{value.free_bytes} bytes free</span>}
+                  {value.warning && <small>{value.warning}</small>}
+                </div>
               ))}
             </div>
-          </div>
+          </details>
+
+          <details>
+            <summary>Model Recommendations</summary>
+            <div className="settings-grid compact">
+              <div>
+                <strong>recommended models</strong>
+                <span>profile: {recommended.profile || resourceProfile?.selected_profile || 'unknown'}</span>
+                <span>llm: {recommended.llm_model || 'unavailable'}</span>
+                <span>vlm: {recommended.vlm_model || 'unavailable'}</span>
+                <span>embeddings: {recommended.embedding_model || 'unavailable'}</span>
+                <small>{recommended.models_to_pull?.length ? `pull: ${recommended.models_to_pull.join(', ')}` : 'No model pull list reported.'}</small>
+              </div>
+              <div>
+                <strong>overrides</strong>
+                {Object.keys(overrides).length ? (
+                  Object.entries(overrides).map(([name, value]) => <span key={name}>{name}: {formatSettingValue(value)}</span>)
+                ) : (
+                  <span>none</span>
+                )}
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Reliability And Adapters</summary>
+            {reliability?.defaults && (
+              <div className="settings-grid compact">
+                <div>
+                  <strong>performance gates</strong>
+                  <span>{reliability.defaults.top_k_chunks} top-k chunks</span>
+                  <span>{reliability.defaults.reranked_chunks} reranked chunks</span>
+                  <small>{reliability.disk.warning ? 'disk warning active' : 'disk space ok'}</small>
+                </div>
+                <div>
+                  <strong>processing states</strong>
+                  <span>{reliability.processing_states.join(', ')}</span>
+                </div>
+              </div>
+            )}
+            {adapters && Object.keys(adapters).length > 0 && (
+              <div className="settings-grid compact">
+                {Object.entries(adapters).map(([group, choices]) => (
+                  <div key={group}>
+                    <strong>{group}</strong>
+                    <span>{Object.keys(choices).join(', ')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </details>
+
+          <details>
+            <summary>Resource Profile</summary>
+            {providerHealth && (
+              <div className="settings-grid compact">
+                <div>
+                  <strong>provider mode</strong>
+                  <span>{providerHealth.real_mode ? 'real mode' : 'deterministic fallback'}</span>
+                  <span>{providerHealth.ready ? 'ready' : 'missing provider'}</span>
+                  {providerHealth.required_missing?.length > 0 && <small>{providerHealth.required_missing.join(', ')}</small>}
+                </div>
+                <div>
+                  <strong>required models</strong>
+                  <span>{Object.entries(providerHealth.ollama?.models || {}).map(([model, info]) => `${model}:${info.installed ? 'installed' : 'missing'}`).join(', ')}</span>
+                </div>
+              </div>
+            )}
+            {resourceProfile && (
+              <div className="settings-grid compact">
+                <div>
+                  <strong>resource profile</strong>
+                  <span>{resourceProfile.selected_profile}</span>
+                  <span>{resourceProfile.safe_to_pull ? 'host Ollama pull ready' : 'model pulls blocked'}</span>
+                  <small>{resourceProfile.warnings?.join(', ') || 'Host Ollama manages model resources outside Docker.'}</small>
+                </div>
+                <div>
+                  <strong>app container resources</strong>
+                  <span>{resourceProfile.resources?.free_disk_gib} GiB disk free</span>
+                  <span>{resourceProfile.resources?.memory_gib ?? 'unknown'} GiB memory</span>
+                </div>
+                <div>
+                  <strong>models to pull</strong>
+                  <span>{resourceProfile.models_to_pull?.join(', ')}</span>
+                </div>
+              </div>
+            )}
+          </details>
         </div>
       )}
-      {providerHealth && (
-        <div className="settings-grid compact">
-          <div>
-            <strong>provider mode</strong>
-            <span>{providerHealth.real_mode ? 'real mode' : 'deterministic fallback'}</span>
-            <span>{providerHealth.ready ? 'ready' : 'missing provider'}</span>
-            {providerHealth.required_missing?.length > 0 && <small>{providerHealth.required_missing.join(', ')}</small>}
-          </div>
-          <div>
-            <strong>required models</strong>
-            <span>{Object.entries(providerHealth.ollama?.models || {}).map(([model, info]) => `${model}:${info.installed ? 'installed' : 'missing'}`).join(', ')}</span>
-          </div>
-        </div>
-      )}
-      {resourceProfile && (
-        <div className="settings-grid compact">
-          <div>
-            <strong>resource profile</strong>
-            <span>{resourceProfile.selected_profile}</span>
-            <span>{resourceProfile.safe_to_pull ? 'host Ollama pull ready' : 'model pulls blocked'}</span>
-            <small>{resourceProfile.warnings?.join(', ') || 'Host Ollama manages model resources outside Docker.'}</small>
-          </div>
-          <div>
-            <strong>app container resources</strong>
-            <span>{resourceProfile.resources?.free_disk_gib} GiB disk free</span>
-            <span>{resourceProfile.resources?.memory_gib ?? 'unknown'} GiB memory</span>
-          </div>
-          <div>
-            <strong>models to pull</strong>
-            <span>{resourceProfile.models_to_pull?.join(', ')}</span>
-          </div>
-        </div>
-      )}
-      <div className="settings-grid compact">
-        <div>
-          <strong>host Ollama models</strong>
-          <span>{modelManagement.reachable ? 'reachable' : 'unreachable'}</span>
-          <span>{missingModels.length ? `missing: ${missingModels.join(', ')}` : 'all configured models installed'}</span>
-          {modelManagement.warning && <small>{modelManagement.warning}</small>}
-        </div>
-        <div>
-          <strong>model pull</strong>
-          <span>{pullActive ? `${modelPullJob.status}` : modelManagement.safe_to_pull ? 'ready' : 'blocked'}</span>
-          <small>{modelManagement.pull_commands?.length ? modelManagement.pull_commands.join(', ') : 'No pull command needed.'}</small>
-          <button type="button" disabled={!missingModels.length || !modelManagement.safe_to_pull || pullActive} onClick={() => onPullModels(missingModels)}>
-            Pull missing models
-          </button>
-        </div>
-      </div>
-      {modelPullEvents?.length > 0 && (
-        <ol className="trace-list compact">
-          {modelPullEvents.map((event) => (
-            <li key={event.id || `${event.event_type}-${event.created_at}`}>
-              <strong>{event.event_type}</strong>
-              <span>{event.status}</span>
-              <small>{event.message}</small>
-            </li>
-          ))}
-        </ol>
-      )}
-      </div>
-      <form className="settings-form" onSubmit={(event) => { event.preventDefault(); onSaveSettings(draft); }}>
-        <label className="field-label" htmlFor="llm-model">LLM model</label>
-        <input id="llm-model" value={draft.llm_model} onChange={(event) => setDraft({ ...draft, llm_model: event.target.value })} />
-        <label className="field-label" htmlFor="vlm-model">VLM model</label>
-        <input id="vlm-model" value={draft.vlm_model} onChange={(event) => setDraft({ ...draft, vlm_model: event.target.value })} />
-        <label className="field-label" htmlFor="embedding-model">Embedding model</label>
-        <input id="embedding-model" value={draft.embedding_model} onChange={(event) => setDraft({ ...draft, embedding_model: event.target.value })} />
-        <label className="field-label" htmlFor="transcription-provider">Transcription provider</label>
-        <select id="transcription-provider" value={draft.transcription_provider} onChange={(event) => setDraft({ ...draft, transcription_provider: event.target.value })}>
-          <option value="faster-whisper">faster-whisper</option>
-          <option value="whisper.cpp">whisper.cpp</option>
-        </select>
-        <label className="field-label" htmlFor="transcription-model">Transcription model</label>
-        <input id="transcription-model" value={draft.transcription_model} onChange={(event) => setDraft({ ...draft, transcription_model: event.target.value })} />
-        <label className="field-label" htmlFor="vector-store">Vector store</label>
-        <select id="vector-store" value={draft.vector_store} onChange={(event) => setDraft({ ...draft, vector_store: event.target.value })}>
-          <option value="chroma">Chroma</option>
-          <option value="qdrant">Qdrant</option>
-        </select>
-        <label className="field-label" htmlFor="provider-mode">Provider mode</label>
-        <select id="provider-mode" value={draft.provider_mode} onChange={(event) => setDraft({ ...draft, provider_mode: event.target.value })}>
-          <option value="real">real</option>
-          <option value="deterministic">deterministic</option>
-        </select>
-        <button type="submit"><Settings size={16} /> Save model settings</button>
-      </form>
     </div>
   );
 }
