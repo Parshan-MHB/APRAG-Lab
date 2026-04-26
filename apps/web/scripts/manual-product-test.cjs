@@ -7,25 +7,9 @@ const APP_URL = process.env.RAGBENCH_APP_URL || "http://localhost:5173";
 const API_URL = process.env.RAGBENCH_API_URL || "http://localhost:8000";
 
 const sampleFiles = [
-  "01_ragbench_requirements.txt",
-  "02_architecture_notes.md",
-  "03_architecture_notes.markdown",
-  "04_metrics_seed.csv",
-  "05_provider_settings.json",
-  "06_release_notes.pdf",
-  "07_meeting_decisions.docx",
-  "08_architecture_diagram.png",
-  "09_architecture_diagram.jpg",
-  "10_architecture_diagram.webp",
-  "11_architecture_diagram.gif",
-  "12_meeting_audio.wav",
-  "13_meeting_audio.mp3",
-  "14_meeting_audio.m4a",
-  "15_meeting_audio.ogg",
-  "16_product_demo_video.mp4",
-  "17_product_demo_video.mov",
-  "18_product_demo_video.mkv",
-  "19_product_demo_video.webm",
+  "01_northstar_incident_brief.md",
+  "02_service_tickets.csv",
+  "03_service_review_notes.md",
 ].map((name) => path.join(SAMPLE_DIR, name));
 
 function assert(condition, message) {
@@ -159,9 +143,9 @@ async function run() {
     await page.getByText("Extracted Evidence Blocks").waitFor({ timeout: 30000 });
 
     const question = [
-      "What are the default LLM, VLM, and embedding models?",
-      "Which component runs on the host?",
-      "What visible UI issue is shown in the product demo video?",
+      "What caused the Lakeside Clinic outage?",
+      "Which ticket metrics prove it was the highest-risk case?",
+      "Why did Harbor Market not qualify for an SLA credit?",
       "Answer with citations.",
     ].join(" ");
 
@@ -197,12 +181,12 @@ async function run() {
     assert(completedRun.recommendation, "Expected recommendation payload");
 
     const combinedAnswers = completedRun.results.map((result) => result.answer).join("\n").toLowerCase();
-    for (const expected of ["qwen3", "qwen3-vl", "bge-m3", "ollama"]) {
+    for (const expected of ["lakeside", "retry", "harbor", "sla"]) {
       assert(combinedAnswers.includes(expected), `Expected answer to mention ${expected}`);
     }
     assert(
-      combinedAnswers.includes("settings") || combinedAnswers.includes("chart") || combinedAnswers.includes("legend"),
-      "Expected answer to mention the visible video UI issue",
+      combinedAnswers.includes("184000") || combinedAnswers.includes("47") || combinedAnswers.includes("p1"),
+      "Expected answer to mention the ticket metric evidence",
     );
     for (const result of completedRun.results) {
       assert(result.citations.length > 0, `${result.pipeline_type} produced no citations`);

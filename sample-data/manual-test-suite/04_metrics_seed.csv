@@ -1,4 +1,0 @@
-pipeline,expected_strength,risk
-traditional,fast grounded answers,misses multi-hop graph links
-agentic,tool trace and source inspection,slower model calls
-hybrid_graph,entity relationships and vector recall,depends on graph quality

@@ -1,0 +1,5 @@
+ticket_id,date,customer,account_id,site_id,asset,firmware,severity,symptom,cooling_within_range,inventory_at_risk_usd,downtime_minutes,root_cause,mitigation,sla_credit,owner
+INC-1043,2026-03-04,Lakeside Clinic,C-104,SEA-17,vaccine freezer A,NS-900 4.8.2,P1,safe mode after three compressor restart attempts,no,184000,47,condenser fan retry storm after transient sensor fault,cold_chain_safe profile and staged firmware 4.8.3 rollout,yes,Priya Shah
+INC-1051,2026-03-05,Harbor Market,C-118,PDX-04,aisle freezer 3,NS-900 4.8.2,P2,intermittent alarm noise,yes,0,0,same firmware retry warning but no safe-mode transition,preventive maintenance notice and firmware 4.8.3 maintenance window,no,Elena Brooks
+INC-1062,2026-03-08,Pine Ridge Foods,C-122,BOI-02,controller 7,NS-900 4.8.3,P3,delayed defrost cycle,yes,0,0,local night schedule misconfiguration,correct night schedule and keep site in pilot group,no,Marco Diaz
+INC-1069,2026-03-10,Lakeside Clinic,C-104,SEA-17,backup freezer B,NS-900 4.8.3,P3,post-mitigation telemetry delay check,yes,0,0,verification event after firmware 4.8.3 pilot,monitor telemetry delay for 72 hours,no,Priya Shah

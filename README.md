@@ -196,21 +196,28 @@ export LANGSMITH_PROJECT=APRAG-Lab
 
 ## Sample Data
 
-Manual test files are in:
+Realistic manual test files are in:
 
 ```text
 sample-data/manual-test-suite
 ```
 
-They cover every supported upload type: TXT, MD, Markdown, CSV, JSON, PDF, DOCX, PNG, JPG, WebP, GIF, WAV, MP3, M4A, OGG, MP4, MOV, MKV, and WebM.
+The sample is a connected Northstar field-service case study. It intentionally uses only Markdown and CSV so the benchmark tests reasoning quality instead of file-extension coverage. The files share customers, ticket IDs, owners, firmware versions, incident metrics, SLA decisions, and mitigation actions.
+
+Files:
+
+- `01_northstar_incident_brief.md`: scenario narrative, customer timeline, root cause, and decisions.
+- `02_service_tickets.csv`: ticket metrics, severity, downtime, inventory risk, owners, and SLA flags.
+- `03_service_review_notes.md`: review-board decisions, owner actions, due dates, and risk interpretation.
 
 Useful benchmark questions:
 
-- Which default LLM, VLM, and embedding models are configured?
-- What changed between the architecture notes and the release notes?
-- Which pipeline had the best grounded answer and why?
-- What evidence came from image, audio, or video sources?
-- Which source should be trusted for provider settings?
+- What caused the Lakeside Clinic outage, and which ticket metrics prove it was the highest-risk case?
+- Which customers were affected by firmware 4.8.2, and why did only one qualify for an SLA credit?
+- What did the review board decide about rollback versus staged firmware 4.8.3 rollout?
+- Compare Lakeside Clinic, Harbor Market, and Pine Ridge Foods by root cause, severity, and mitigation.
+- Which owner is responsible for each follow-up action, and what evidence connects the owner to the ticket?
+- Was Pine Ridge Foods part of the firmware defect, or was it a different issue?
 
 Regenerate the sample files when needed:
 

@@ -1135,10 +1135,14 @@ def test_epic14_sample_dataset_loads_sources_and_questions():
 
     assert info.status_code == 200
     assert len(info.json()["questions"]) == 6
-    assert {"product_requirements.pdf", "architecture_diagram.png", "meeting_audio.wav", "product_demo.mp4"}.issubset(set(info.json()["sources"]))
+    assert {
+        "01_northstar_incident_brief.md",
+        "02_service_tickets.csv",
+        "03_service_review_notes.md",
+    }.issubset(set(info.json()["sources"]))
     assert loaded.status_code == 200
     project = loaded.json()["project"]
-    assert project["source_count"] == 5
+    assert project["source_count"] == 3
     assert project["chunk_count"] >= 5
     assert project["active_version"]["change_type"] == "sample_dataset"
 
@@ -1150,7 +1154,14 @@ def test_epic14_acceptance_suite_runs_and_records_timings():
     body = result.json()
     assert body["passed"] is True
     assert body["elapsed_seconds"] >= 0
-    assert {item["id"] for item in body["results"]} == {"document_only", "image_only", "video_only", "mixed_sources", "meeting_audio", "source_coverage"}
+    assert {item["id"] for item in body["results"]} == {
+        "root_cause_and_risk",
+        "firmware_customer_impact",
+        "rollback_decision",
+        "site_comparison",
+        "owners_and_actions",
+        "false_positive_case",
+    }
     assert all(item["elapsed_seconds"] >= 0 for item in body["results"])
     assert all(item["expected_hits"] for item in body["results"])
 

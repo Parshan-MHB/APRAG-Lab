@@ -13,67 +13,91 @@ from .rag import deterministic_vector, rebuild_project_graph, run_pipeline, spli
 
 SAMPLE_SOURCES = [
     {
-        "filename": "product_requirements.pdf",
-        "source_type": "pdf",
-        "block_type": "page_text",
-        "text": "Checkout requires authentication through API Gateway and Token Store. Main risks are payment latency, deployment coordination, and unclear retry behavior.",
+        "filename": "01_northstar_incident_brief.md",
+        "source_type": "markdown",
+        "block_type": "document_text",
+        "text": (
+            "Northstar Appliances runs connected refrigeration systems for grocery and healthcare customers. "
+            "Customer Lakeside Clinic account C-104 at site SEA-17 opened ticket INC-1043 on 2026-03-04 after vaccine freezer A entered safe mode. "
+            "The freezer held temperature-sensitive inventory, so the case was severity P1. "
+            "Logs showed NS-900 firmware 4.8.2 retried the condenser fan check too aggressively after a transient sensor fault. "
+            "The retry storm increased controller CPU load, delayed telemetry, and triggered safe mode for 47 minutes. "
+            "The immediate workaround was to pin the controller to profile cold_chain_safe and restart the condenser fan service. "
+            "Harbor Market account C-118 at site PDX-04 opened INC-1051 for intermittent alarm noise on aisle freezer 3. "
+            "Harbor also ran NS-900 firmware 4.8.2, but cooling stayed in range and there was no safe-mode transition. "
+            "Pine Ridge Foods account C-122 at BOI-02 opened INC-1062 for a delayed defrost cycle on firmware 4.8.3; root cause was a local night schedule misconfiguration. "
+            "The review board decided not to roll back all customers to firmware 4.7.9. "
+            "Instead, Marco Diaz will ship firmware 4.8.3 to cold-chain healthcare accounts first, then grocery accounts. "
+            "Priya Shah owns the field runbook update. Elena Brooks owns customer communication for Lakeside Clinic and Harbor Market. "
+            "Lakeside Clinic qualifies for an SLA credit because medical inventory was at risk and manual intervention was required. "
+            "The ticket metrics for INC-1043 recorded P1 severity, 184000 dollars of inventory at risk, and 47 minutes of downtime. "
+            "Harbor Market does not qualify for an SLA credit because cooling stayed within range. "
+            "Pine Ridge Foods does not qualify because the issue was a local schedule configuration error."
+        ),
     },
     {
-        "filename": "architecture_diagram.png",
-        "source_type": "image",
-        "block_type": "caption",
-        "text": "Architecture diagram shows API Gateway connected to Auth Service, Token Store, Checkout Service, and Payment Processor.",
+        "filename": "02_service_tickets.csv",
+        "source_type": "csv",
+        "block_type": "table_text",
+        "text": (
+            "ticket_id,date,customer,account_id,site_id,asset,firmware,severity,symptom,cooling_within_range,inventory_at_risk_usd,downtime_minutes,root_cause,mitigation,sla_credit,owner\n"
+            "INC-1043,2026-03-04,Lakeside Clinic,C-104,SEA-17,vaccine freezer A,NS-900 4.8.2,P1,safe mode after three compressor restart attempts,no,184000,47,condenser fan retry storm after transient sensor fault,cold_chain_safe profile and staged firmware 4.8.3 rollout,yes,Priya Shah\n"
+            "INC-1051,2026-03-05,Harbor Market,C-118,PDX-04,aisle freezer 3,NS-900 4.8.2,P2,intermittent alarm noise,yes,0,0,same firmware retry warning but no safe-mode transition,preventive maintenance notice and firmware 4.8.3 maintenance window,no,Elena Brooks\n"
+            "INC-1062,2026-03-08,Pine Ridge Foods,C-122,BOI-02,controller 7,NS-900 4.8.3,P3,delayed defrost cycle,yes,0,0,local night schedule misconfiguration,correct night schedule and keep site in pilot group,no,Marco Diaz\n"
+            "INC-1069,2026-03-10,Lakeside Clinic,C-104,SEA-17,backup freezer B,NS-900 4.8.3,P3,post-mitigation telemetry delay check,yes,0,0,verification event after firmware 4.8.3 pilot,monitor telemetry delay for 72 hours,no,Priya Shah"
+        ),
     },
     {
-        "filename": "meeting_notes.docx",
-        "source_type": "docx",
-        "block_type": "text",
-        "text": "Meeting decision: keep local-first processing, use host Ollama for real model benchmarks, and review remaining risk around video transcription speed.",
-    },
-    {
-        "filename": "meeting_audio.wav",
-        "source_type": "audio",
-        "block_type": "transcript",
-        "text": "Transcript: the team decided to prioritize checkout authentication and document the remaining payment retry risk.",
-    },
-    {
-        "filename": "product_demo.mp4",
-        "source_type": "video",
-        "block_type": "transcript",
-        "text": "Demo video transcript: checkout failed after payment timeout, then recovered after retry from the payment processor.",
+        "filename": "03_service_review_notes.md",
+        "source_type": "markdown",
+        "block_type": "document_text",
+        "text": (
+            "The 2026-03-11 service review compared March incident tickets with fleet metrics. "
+            "The team agreed the problem was not a general refrigeration failure. "
+            "It was a firmware-specific control-loop defect affecting NS-900 version 4.8.2 when condenser fan sensor data briefly dropped out. "
+            "Priya Shah reported field technicians could apply the cold_chain_safe profile in under 12 minutes. "
+            "Marco Diaz confirmed firmware 4.8.3 changes the retry policy from three immediate retries to one retry followed by a 90-second cooldown. "
+            "Elena Brooks requested separate customer messaging for healthcare customers and grocery customers. "
+            "Decision 1: do not perform a broad rollback to firmware 4.7.9. "
+            "Decision 2: deploy firmware 4.8.3 first to healthcare cold-chain sites, starting with Lakeside Clinic SEA-17. "
+            "Decision 3: send Harbor Market a preventive notice and maintenance window, but no SLA credit. "
+            "Decision 4: issue Lakeside Clinic an SLA credit and provide a compliance incident summary. "
+            "Decision 5: keep Pine Ridge Foods in the pilot group and correct its night schedule. "
+            "Open actions: Priya Shah publishes the cold_chain_safe runbook by 2026-03-13; Marco Diaz releases the staged rollout package by 2026-03-14; Elena Brooks sends the Lakeside credit memo and Harbor preventive notice by 2026-03-15."
+        ),
     },
 ]
 
 DEMO_QUESTIONS = [
     {
-        "id": "document_only",
-        "question": "What are the requirements and risks for checkout authentication?",
-        "expected_terms": ["authentication", "API Gateway", "Token Store", "latency"],
+        "id": "root_cause_and_risk",
+        "question": "What caused the Lakeside Clinic outage, and which ticket metrics prove it was the highest-risk case?",
+        "expected_terms": ["safe mode", "control-loop", "SLA credit"],
     },
     {
-        "id": "image_only",
-        "question": "What does the architecture diagram show about authentication flow?",
-        "expected_terms": ["API Gateway", "Auth Service", "Token Store"],
+        "id": "firmware_customer_impact",
+        "question": "Which customers were affected by firmware 4.8.2, and why did only one qualify for an SLA credit?",
+        "expected_terms": ["Lakeside Clinic", "Harbor Market", "SLA credit"],
     },
     {
-        "id": "video_only",
-        "question": "What checkout problem appears in the product demo video?",
-        "expected_terms": ["checkout", "payment timeout", "retry"],
+        "id": "rollback_decision",
+        "question": "What did the review board decide about rollback versus staged firmware 4.8.3 rollout?",
+        "expected_terms": ["rollback", "4.8.3", "healthcare"],
     },
     {
-        "id": "mixed_sources",
-        "question": "What decisions and remaining risks are mentioned across the sources?",
-        "expected_terms": ["local-first", "payment", "risk", "transcription"],
+        "id": "site_comparison",
+        "question": "Compare Lakeside Clinic, Harbor Market, and Pine Ridge Foods by root cause, severity, and mitigation.",
+        "expected_terms": ["Lakeside Clinic", "Harbor Market", "Pine Ridge Foods", "mitigation"],
     },
     {
-        "id": "meeting_audio",
-        "question": "What decision was made in the meeting audio?",
-        "expected_terms": ["decision", "local-first", "Ollama"],
+        "id": "owners_and_actions",
+        "question": "Which owner is responsible for each follow-up action, and what evidence connects the owner to the ticket?",
+        "expected_terms": ["Priya Shah", "Marco Diaz", "Elena Brooks"],
     },
     {
-        "id": "source_coverage",
-        "question": "Which sources mention checkout, authentication, or deployment?",
-        "expected_terms": ["checkout", "authentication", "deployment"],
+        "id": "false_positive_case",
+        "question": "Was Pine Ridge Foods part of the firmware defect, or was it a different issue?",
+        "expected_terms": ["Pine Ridge Foods", "night schedule", "different"],
     },
 ]
 
