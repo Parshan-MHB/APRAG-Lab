@@ -9,7 +9,7 @@ The product is designed for teams that need to evaluate whether a RAG system is 
 - Upload TXT, Markdown, CSV, JSON, PDF, DOCX, image, audio, and video files.
 - Extract text, tables, OCR text, video frames, audio, and transcripts.
 - Store metadata and graph state in SQLite.
-- Store embeddings in Chroma or Qdrant.
+- Store embeddings in Chroma or Qdrant, with a SQLite/in-memory fallback for tests and offline development.
 - Use host Ollama for real LLM, VLM, and embedding models.
 - Use host media tooling for OCR, FFmpeg extraction, and transcription.
 - Run Traditional RAG, Agentic RAG, and Hybrid Graph RAG for the same question.
@@ -24,11 +24,13 @@ Docker runs the product shell:
 
 - `web`: React/Vite frontend at `http://localhost:5173`
 - `api`: FastAPI backend at `http://localhost:8000`
-- `worker`: local benchmark and ingestion worker
+- `worker`: default local benchmark and ingestion worker
 - `redis`: queue and job coordination
 - `redis-commander`: Redis dashboard
 - `chroma`: vector database, enabled with the `vector` profile
 - `qdrant`: vector database, enabled with the `vector` profile
+- `rq-worker`: optional RQ worker, enabled with the `queue` profile
+- `celery-worker`: optional Celery worker, enabled with the `queue` profile
 - `jaeger`: OpenTelemetry trace dashboard
 - `phoenix`: AI/RAG observability dashboard
 
@@ -66,7 +68,7 @@ If Ollama is installed as a desktop app, opening the app is usually enough.
 
 ## Model Profiles
 
-The default profile is `lite`, which is the recommended first run:
+Docker Compose sets `APRAG_MODEL_PROFILE=auto`. Auto mode preflights the host and currently selects the `lite` profile, which is the recommended first run:
 
 - LLM: `qwen3:8b`
 - VLM: `qwen3-vl:4b`
@@ -87,6 +89,8 @@ ollama pull bge-m3
 ```
 
 You can also start the app first and use Settings -> Pull missing models. The backend queues model pulls through the worker and shows progress in the UI.
+
+The frontend Settings panel can save runtime overrides for the LLM, VLM, embedding model, transcription provider, transcription model, vector store, and provider mode. If an override names an Ollama model that is not installed, Settings -> Pull missing models asks the backend worker to pull it from host Ollama.
 
 ## Setup From Scratch
 
@@ -114,6 +118,14 @@ Start the product containers:
 docker compose --profile vector up -d --build
 ```
 
+The default stack uses the built-in local worker. The optional RQ and Celery services are available for queue parity testing:
+
+```bash
+docker compose --profile vector --profile queue up -d --build
+```
+
+Only use the `queue` profile when `APRAG_QUEUE_MODE` is also set to `rq` or `celery`; normal local use should keep the Compose default `APRAG_QUEUE_MODE=local`.
+
 Open the app:
 
 ```text
@@ -140,6 +152,8 @@ The first load creates a local benchmark project automatically.
 11. Review the Comparison tab, individual flow tabs, citations, trace data, graph usage, and grounding notes.
 12. Use Settings to inspect provider health, model overrides, missing model pulls, resource profile, database dashboards, and monitoring dashboards.
 
+The main frontend surfaces are Upload And Processing, Project Sources, Source Viewer, Benchmark Run, Run History, and Settings. Project Sources is expandable by source, Source Viewer opens extracted chunks and citations, Run History reopens previous benchmark runs, and Settings separates action controls from system information.
+
 Run exports are available from the API:
 
 ```text
@@ -152,6 +166,7 @@ http://localhost:8000/api/runs/{run_id}/export.md
 - Frontend: `http://localhost:5173`
 - API health: `http://localhost:8000/health`
 - API docs: `http://localhost:8000/docs`
+- Host media runtime health: `http://localhost:8765/health`
 - SQLite query console: `http://localhost:8000/api/database/sqlite-dashboard`
 - Chroma API docs: `http://localhost:8001/docs`
 - Qdrant dashboard: `http://localhost:6333/dashboard`
@@ -234,6 +249,16 @@ Supported upload extensions:
 - Audio: `.wav`, `.mp3`, `.m4a`, `.ogg`
 - Video: `.mp4`, `.mov`, `.mkv`, `.webm`
 
+Upload limits enforced by the API:
+
+- Max file size: 200 MB
+- Max audio duration: 30 minutes
+- Max video duration: 15 minutes
+- Max PDF length: 300 pages
+- Max DOCX estimate: 300 structural units
+- Max images per upload run: 50
+- Max chunks per project: 10,000
+
 ## Configuration
 
 Common environment variables:
@@ -242,6 +267,7 @@ Common environment variables:
 - `APRAG_PROVIDER_MODE=real|deterministic`
 - `APRAG_VECTOR_STORE=chroma|qdrant|sqlite`
 - `APRAG_MEDIA_RUNTIME=host|container`
+- `APRAG_QUEUE_MODE=inline|local|rq|celery`
 - `OLLAMA_BASE_URL=http://host.docker.internal:11434`
 - `APRAG_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765`
 - `APRAG_DEFAULT_OLLAMA_LLM=qwen3:8b`
@@ -255,6 +281,28 @@ Common environment variables:
 - `LANGSMITH_PROJECT=APRAG-Lab`
 
 For normal local use, keep the defaults in `docker-compose.yml`.
+
+Additional runtime controls supported by the backend:
+
+- Model generation: `APRAG_OLLAMA_TEMPERATURE`, `APRAG_OLLAMA_NUM_PREDICT`, `APRAG_VLM_TEMPERATURE`, `APRAG_VLM_NUM_PREDICT`, `APRAG_OLLAMA_THINKING`
+- Model timeouts: `APRAG_LLM_TIMEOUT`, `APRAG_VLM_TIMEOUT`, `APRAG_EMBEDDING_TIMEOUT`
+- Model pulling: `APRAG_OLLAMA_MODELS`
+- Host media runtime: `APRAG_HOST_DATA_DIR`, `APRAG_HOST_MEDIA_HOST`, `APRAG_HOST_MEDIA_PORT`, `APRAG_HOST_MEDIA_TIMEOUT`, `APRAG_HOST_MEDIA_HEALTH_TIMEOUT`
+- Transcription: `APRAG_TRANSCRIPTION_PROVIDER=faster-whisper|whisper.cpp`, `APRAG_FASTER_WHISPER_MODEL`, `APRAG_WHISPER_DEVICE`, `APRAG_WHISPER_COMPUTE_TYPE`, `WHISPER_CPP_MODEL`
+- OCR and parsing: `APRAG_OCR_PROVIDER=tesseract|easyocr`, `APRAG_EASYOCR_GPU`, `APRAG_DOC_PARSER=docling`
+- Graph RAG: `APRAG_USE_LANGGRAPH`, `APRAG_GRAPH_LLM_MAX_CHUNKS`, `APRAG_GRAPH_LLM_MAX_SUMMARIES`, `APRAG_GRAPH_LLM_TIMEOUT`, `APRAG_GRAPH_LLM_TEMPERATURE`, `APRAG_GRAPH_LLM_NUM_PREDICT`
+- Storage and reliability: `DATA_DIR`, `APRAG_SQLITE_TIMEOUT`, `APRAG_STRICT_VECTOR_STORE`, `APRAG_DISK_WARNING_BYTES`, `APRAG_RESOURCE_CHECK_PATH`
+
+## Storage Layout
+
+Persistent app data lives under `data/`:
+
+- `data/sqlite/APRAG-Lab.db`: projects, sources, chunks, runs, metrics, feedback, graph state, and job events.
+- `data/projects/{project_id}`: uploaded source files, derived OCR/transcript/frame artifacts, manifests, and run exports.
+- `data/vector_store/chroma`: local Chroma data when the API uses embedded Chroma instead of the Compose Chroma service.
+- `data/logs/APRAG-Lab.log`: local structured application logs.
+
+Docker named volumes hold service-specific data for Qdrant, Chroma, and Phoenix when their containers are running.
 
 ## Verification
 
@@ -274,6 +322,12 @@ Frontend production build:
 
 ```bash
 docker compose exec -T web npm run build
+```
+
+These commands assume the stack is already running. From a stopped machine, start it first with:
+
+```bash
+docker compose --profile vector up -d --build
 ```
 
 Provider health:
