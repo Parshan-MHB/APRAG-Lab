@@ -7,9 +7,10 @@ const APP_URL = process.env.RAGBENCH_APP_URL || "http://localhost:5173";
 const API_URL = process.env.RAGBENCH_API_URL || "http://localhost:8000";
 
 const sampleFiles = [
-  "01_northstar_incident_brief.md",
-  "02_service_tickets.csv",
-  "03_service_review_notes.md",
+  "01_vaccine_administration_event.jpg",
+  "02_lakeside_dispatch_memo.wav",
+  "03_service_tickets.csv",
+  "04_incident_review.pdf",
 ].map((name) => path.join(SAMPLE_DIR, name));
 
 function assert(condition, message) {
@@ -144,8 +145,9 @@ async function run() {
 
     const question = [
       "What caused the Lakeside Clinic outage?",
-      "Which ticket metrics prove it was the highest-risk case?",
+      "What did the audio memo say Priya Shah did?",
       "Why did Harbor Market not qualify for an SLA credit?",
+      "What does the image show?",
       "Answer with citations.",
     ].join(" ");
 
@@ -181,7 +183,7 @@ async function run() {
     assert(completedRun.recommendation, "Expected recommendation payload");
 
     const combinedAnswers = completedRun.results.map((result) => result.answer).join("\n").toLowerCase();
-    for (const expected of ["lakeside", "retry", "harbor", "sla"]) {
+    for (const expected of ["lakeside", "priya", "harbor", "sla", "vaccine"]) {
       assert(combinedAnswers.includes(expected), `Expected answer to mention ${expected}`);
     }
     assert(

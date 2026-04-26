@@ -1,0 +1,102 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 2326 >>
+stream
+BT
+/F1 11 Tf
+50 760 Td
+14 TL
+(Northstar Appliances - March 2026 Incident Review) Tj
+T*
+() Tj
+T*
+(Scenario) Tj
+T*
+(Northstar Appliances runs connected refrigeration systems for grocery and healthcare customers.) Tj
+T*
+(In March 2026, the team investigated compressor shutdowns after an NS-900 firmware rollout.) Tj
+T*
+(The same customer accounts appear in the image, audio memo, CSV tickets, and this PDF review.) Tj
+T*
+() Tj
+T*
+(Key Entities) Tj
+T*
+(Lakeside Clinic, account C-104, site SEA-17, operated vaccine freezer A.) Tj
+T*
+(Harbor Market, account C-118, site PDX-04, operated aisle freezer 3.) Tj
+T*
+(Pine Ridge Foods, account C-122, site BOI-02, operated controller 7.) Tj
+T*
+(Firmware under review was NS-900 version 4.8.2.) Tj
+T*
+(Replacement firmware approved for rollout was NS-900 version 4.8.3.) Tj
+T*
+(Priya Shah owned the field runbook update.) Tj
+T*
+(Marco Diaz owned the firmware rollout.) Tj
+T*
+(Elena Brooks owned customer communication.) Tj
+T*
+() Tj
+T*
+(Timeline And Root Cause) Tj
+T*
+(On 2026-03-04 at 02:14 local time, Lakeside Clinic opened ticket INC-1043.) Tj
+T*
+(Vaccine freezer A entered safe mode after three compressor restart attempts.) Tj
+T*
+(The case was severity P1 because temperature-sensitive medical inventory was at risk.) Tj
+T*
+(Logs showed firmware 4.8.2 retried the condenser fan check too aggressively after a transient sensor fault.) Tj
+T*
+(The retry storm increased controller CPU load, delayed telemetry, and triggered safe mode for 47 minutes.) Tj
+T*
+(The immediate workaround was cold_chain_safe plus a condenser fan service restart.) Tj
+T*
+(CSV metrics for INC-1043 were severity P1, 184000 dollars of inventory at risk, and 47 downtime minutes.) Tj
+T*
+() Tj
+T*
+(Review Board Decisions) Tj
+T*
+(The board decided not to roll back every customer to firmware 4.7.9.) Tj
+T*
+(Rollback would disable telemetry compression required by service analytics.) Tj
+T*
+(Instead, firmware 4.8.3 rolls out first to healthcare cold-chain accounts, then grocery accounts.) Tj
+T*
+(Lakeside Clinic qualifies for an SLA credit and a compliance incident summary.) Tj
+T*
+(Harbor Market receives a preventive maintenance notice, but no SLA credit, because cooling stayed in range.) Tj
+T*
+(Pine Ridge Foods stays in the pilot group because its delayed defrost was a local night schedule error.) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+2689
+%%EOF

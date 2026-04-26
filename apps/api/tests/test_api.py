@@ -1136,13 +1136,14 @@ def test_epic14_sample_dataset_loads_sources_and_questions():
     assert info.status_code == 200
     assert len(info.json()["questions"]) == 6
     assert {
-        "01_northstar_incident_brief.md",
-        "02_service_tickets.csv",
-        "03_service_review_notes.md",
+        "01_vaccine_administration_event.jpg",
+        "02_lakeside_dispatch_memo.wav",
+        "03_service_tickets.csv",
+        "04_incident_review.pdf",
     }.issubset(set(info.json()["sources"]))
     assert loaded.status_code == 200
     project = loaded.json()["project"]
-    assert project["source_count"] == 3
+    assert project["source_count"] == 4
     assert project["chunk_count"] >= 5
     assert project["active_version"]["change_type"] == "sample_dataset"
 
@@ -1156,10 +1157,10 @@ def test_epic14_acceptance_suite_runs_and_records_timings():
     assert body["elapsed_seconds"] >= 0
     assert {item["id"] for item in body["results"]} == {
         "root_cause_and_risk",
+        "image_context",
+        "audio_dispatch_action",
         "firmware_customer_impact",
         "rollback_decision",
-        "site_comparison",
-        "owners_and_actions",
         "false_positive_case",
     }
     assert all(item["elapsed_seconds"] >= 0 for item in body["results"])
@@ -1940,6 +1941,46 @@ def test_epic35_real_image_ingestion_creates_vlm_caption_block(monkeypatch):
     assert caption["metadata"]["model"] == "fake-vlm-v1"
     assert caption["metadata"]["visual_caption"] is True
     assert "Deterministic caption placeholder" not in caption["text"]
+
+
+def test_image_ingestion_retries_when_no_text_photo_gets_empty_vlm_caption(monkeypatch):
+    monkeypatch.setenv("RAGBENCH_PROVIDER_MODE", "real")
+
+    class EmptyOCR:
+        provider = "fake_ocr"
+
+        def extract_text(self, image_path):
+            return ProviderResult(provider=self.provider, model="fake-ocr-v1", text="", metadata={"confidence": 0.0})
+
+    class EmptyOCRRegistry:
+        def __init__(self, vlm):
+            self._vlm = vlm
+
+        def ocr(self):
+            return EmptyOCR()
+
+        def vlm(self):
+            return self._vlm
+
+    vlm = SequenceVLM(
+        [
+            ("", 0.2),
+            ("A clinician wearing gloves administers a vaccine injection to a patient's upper arm.", 0.78),
+        ]
+    )
+    monkeypatch.setattr(media_processing, "provider_registry", lambda: EmptyOCRRegistry(vlm))
+    project_root = data_dir() / "projects" / "image-empty-vlm-retry"
+    image_path = project_root / "sources" / "original" / "vaccine-event.jpg"
+    image_path.parent.mkdir(parents=True, exist_ok=True)
+    image_path.write_bytes(b"fake no-text photo")
+
+    blocks, warnings = media_processing.image_blocks(image_path, "vaccine-event.jpg", project_root, "source-image")
+
+    assert not warnings
+    caption = next(block for block in blocks if block["block_type"] == "caption")
+    assert "vaccine injection" in caption["text"]
+    assert len(vlm.questions) == 2
+    assert "Do not rely on OCR" in vlm.questions[1]
 
 
 def test_host_media_runtime_path_uses_host_ocr_without_container_tesseract(monkeypatch):

@@ -1,18 +1,19 @@
-# Northstar Field Service Scenario
+# Northstar Multimodal Test Scenario
 
-This sample is designed for realistic RAG benchmark testing, not file-extension coverage. It uses only Markdown and CSV, but the evidence is connected across customer accounts, tickets, owners, firmware versions, mitigation decisions, and financial/SLA outcomes.
+This sample is designed for realistic multimodal RAG benchmark testing. It uses one image, one audio memo, one CSV, and one PDF. The evidence is connected across customers, ticket IDs, owners, firmware versions, incident metrics, SLA decisions, and mitigation actions.
 
 Files:
 
-- `01_northstar_incident_brief.md`: case narrative, timeline, entities, root cause, and decisions.
-- `02_service_tickets.csv`: structured ticket metrics, severity, downtime, risk, owners, and SLA flags.
-- `03_service_review_notes.md`: meeting decisions, owners, due dates, and risk interpretation.
+- `01_vaccine_administration_event.jpg`: real-world clinical vaccine administration photo with no added text overlay. Source: https://commons.wikimedia.org/wiki/File:Nurse_administers_a_vaccine.jpg
+- `02_lakeside_dispatch_memo.wav`: spoken dispatch memo for INC-1043 and Priya Shah's field action.
+- `03_service_tickets.csv`: structured ticket metrics, severity, downtime, inventory risk, owners, and SLA flags.
+- `04_incident_review.pdf`: incident narrative, root cause, rollback decision, rollout plan, and customer outcomes.
 
 Suggested benchmark questions:
 
-1. What caused the Lakeside Clinic outage, and which ticket metrics prove it was the highest-risk case?
-2. Which customers were affected by firmware 4.8.2, and why did only one qualify for an SLA credit?
-3. What did the review board decide about rollback versus staged firmware 4.8.3 rollout?
-4. Compare Lakeside Clinic, Harbor Market, and Pine Ridge Foods by root cause, severity, and mitigation.
-5. Which owner is responsible for each follow-up action, and what evidence connects the owner to the ticket?
+1. What caused the Lakeside Clinic outage, and which CSV ticket metrics prove it was the highest-risk case?
+2. What does the vaccination image show, and how does it relate to the Lakeside vaccine freezer incident?
+3. What did the audio dispatch memo say Priya Shah did for INC-1043?
+4. Which customers were on firmware 4.8.2, and why did only Lakeside qualify for an SLA credit?
+5. What did the review board decide about rollback versus staged firmware 4.8.3 rollout?
 6. Was Pine Ridge Foods part of the firmware defect, or was it a different issue?

@@ -202,21 +202,22 @@ Realistic manual test files are in:
 sample-data/manual-test-suite
 ```
 
-The sample is a connected Northstar field-service case study. It intentionally uses only Markdown and CSV so the benchmark tests reasoning quality instead of file-extension coverage. The files share customers, ticket IDs, owners, firmware versions, incident metrics, SLA decisions, and mitigation actions.
+The sample is a connected Northstar field-service case study. It uses one real-world image, one audio memo, one CSV, and one PDF to prove the multimodal path while keeping the scenario small enough for repeatable manual testing. The files share customers, ticket IDs, owners, firmware versions, incident metrics, SLA decisions, and mitigation actions.
 
 Files:
 
-- `01_northstar_incident_brief.md`: scenario narrative, customer timeline, root cause, and decisions.
-- `02_service_tickets.csv`: ticket metrics, severity, downtime, inventory risk, owners, and SLA flags.
-- `03_service_review_notes.md`: review-board decisions, owner actions, due dates, and risk interpretation.
+- `01_vaccine_administration_event.jpg`: real-world clinical vaccine administration photo with no added text overlay, sourced from Wikimedia Commons / NIH public-domain media.
+- `02_lakeside_dispatch_memo.wav`: spoken dispatch memo for INC-1043 and Priya Shah's field action.
+- `03_service_tickets.csv`: ticket metrics, severity, downtime, inventory risk, owners, and SLA flags.
+- `04_incident_review.pdf`: incident narrative, root cause, rollback decision, rollout plan, and customer outcomes.
 
 Useful benchmark questions:
 
-- What caused the Lakeside Clinic outage, and which ticket metrics prove it was the highest-risk case?
-- Which customers were affected by firmware 4.8.2, and why did only one qualify for an SLA credit?
+- What caused the Lakeside Clinic outage, and which CSV ticket metrics prove it was the highest-risk case?
+- What does the vaccination image show, and how does it relate to the Lakeside vaccine freezer incident?
+- What did the audio dispatch memo say Priya Shah did for INC-1043?
+- Which customers were on firmware 4.8.2, and why did only Lakeside qualify for an SLA credit?
 - What did the review board decide about rollback versus staged firmware 4.8.3 rollout?
-- Compare Lakeside Clinic, Harbor Market, and Pine Ridge Foods by root cause, severity, and mitigation.
-- Which owner is responsible for each follow-up action, and what evidence connects the owner to the ticket?
 - Was Pine Ridge Foods part of the firmware defect, or was it a different issue?
 
 Regenerate the sample files when needed:
@@ -224,6 +225,14 @@ Regenerate the sample files when needed:
 ```bash
 python3 scripts/create_manual_test_dataset.py
 ```
+
+Supported upload extensions:
+
+- Text and documents: `.txt`, `.md`, `.markdown`, `.pdf`, `.docx`
+- Structured data: `.csv`, `.json`
+- Images: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`
+- Audio: `.wav`, `.mp3`, `.m4a`, `.ogg`
+- Video: `.mp4`, `.mov`, `.mkv`, `.webm`
 
 ## Configuration
 

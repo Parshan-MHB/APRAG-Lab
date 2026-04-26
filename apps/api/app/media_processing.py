@@ -68,6 +68,19 @@ def _vlm_caption_block(
         return None, f"vlm_caption_failed:{image_path.name}:{exc}"
     caption_text = observation.visual_answer.strip()
     if not caption_text:
+        try:
+            retry_observation = provider_registry().vlm().inspect_image(
+                source_id,
+                frame_or_image_id,
+                image_path,
+                "Describe the visible scene in one concise factual sentence. Do not rely on OCR and do not return an empty response.",
+            )
+            caption_text = retry_observation.visual_answer.strip()
+            if caption_text:
+                observation = retry_observation
+        except Exception as exc:
+            return None, f"vlm_caption_empty:{image_path.name}:retry_failed:{exc}"
+    if not caption_text:
         return None, f"vlm_caption_empty:{image_path.name}"
     caption_dir = _derived_dir(project_root, "captions")
     suffix = frame_or_image_id or source_id
@@ -140,7 +153,7 @@ def image_blocks(path: Path, filename: str, project_root: Path, source_id: str) 
         filename,
         project_root,
         source_id,
-        "Create a concise factual visual caption. Include visible text, entities, diagrams, UI states, and limitations.",
+        "Create a concise factual visual caption. Describe the visible scene, objects, people, entities, diagrams, UI states, visible text if any, and limitations.",
         frame_or_image_id=source_id,
     )
     if caption_block:

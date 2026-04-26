@@ -2,84 +2,60 @@ from __future__ import annotations
 
 import csv
 import shutil
+import subprocess
+import wave
 from pathlib import Path
+from urllib.request import urlretrieve
 
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "sample-data" / "manual-test-suite"
 
+IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Nurse_administers_a_vaccine.jpg/1280px-Nurse_administers_a_vaccine.jpg"
+IMAGE_SOURCE = "https://commons.wikimedia.org/wiki/File:Nurse_administers_a_vaccine.jpg"
 
-INCIDENT_BRIEF = """# Northstar Field Service Case File
+AUDIO_SCRIPT = (
+    "Dispatch memo for incident INC-1043. Lakeside Clinic vaccine freezer A entered safe mode "
+    "after a condenser fan retry storm. Priya Shah applied the cold chain safe profile and restarted "
+    "the condenser fan service. Harbor Market stayed within range and should receive a preventive "
+    "notice, not an SLA credit."
+)
 
-## Scenario
-
-Northstar Appliances runs connected refrigeration systems for grocery and healthcare customers in the Pacific Northwest. In March 2026 the company investigated repeated compressor shutdowns after a firmware rollout to the NS-900 controller. The same customer accounts appear in support tickets, service metrics, and the operations review so benchmark questions require cross-source reasoning rather than single-snippet lookup.
-
-## Key Entities
-
-- Customer: Lakeside Clinic, account C-104, site SEA-17.
-- Customer: Harbor Market, account C-118, site PDX-04.
-- Customer: Pine Ridge Foods, account C-122, site BOI-02.
-- Controller firmware under review: NS-900 version 4.8.2.
-- Replacement firmware approved for staged rollout: NS-900 version 4.8.3.
-- On-call service lead: Priya Shah.
-- Firmware owner: Marco Diaz.
-- Customer success owner: Elena Brooks.
-
-## Incident Timeline
-
-On 2026-03-04 at 02:14 local time, Lakeside Clinic reported that vaccine freezer A entered safe mode after three compressor restart attempts. Ticket INC-1043 was opened with severity P1 because the freezer held temperature-sensitive inventory. Logs showed firmware 4.8.2 retried the condenser fan check too aggressively after a transient sensor fault. The retry storm increased controller CPU load, delayed telemetry, and triggered safe mode. The immediate workaround was to pin the controller to profile cold_chain_safe and restart the condenser fan service.
-
-On 2026-03-05, Harbor Market opened ticket INC-1051 for intermittent alarm noise on aisle freezer 3. The unit also ran firmware 4.8.2, but the logs showed no safe-mode transition and no inventory loss. The issue was classified as P2 because it was customer-visible but did not break cooling. Harbor Market needs proactive communication, not an SLA credit.
-
-On 2026-03-08, Pine Ridge Foods opened ticket INC-1062 for a delayed defrost cycle on controller 7. That site was already on firmware 4.8.3 from a pilot group. The root cause was a misconfigured night schedule, not the firmware retry defect.
-
-## Operations Review
-
-The review board decided not to roll back all customers to firmware 4.7.9 because rollback would disable new telemetry compression needed by the service analytics program. Instead, Marco Diaz will ship firmware 4.8.3 to cold-chain healthcare accounts first, then grocery accounts. Priya Shah owns the field runbook update. Elena Brooks owns customer communication for Lakeside Clinic and Harbor Market.
-
-Lakeside Clinic qualifies for an SLA credit because the P1 outage risked regulated medical inventory for 47 minutes and required manual intervention. Harbor Market does not qualify for an SLA credit because cooling stayed within range. Pine Ridge Foods does not qualify because the issue was a local schedule configuration error.
-
-## Benchmark-Relevant Facts
-
-- The highest business risk is Lakeside Clinic because medical inventory was at risk and a P1 ticket was opened.
-- Ticket INC-1043 recorded 184000 dollars of inventory at risk and 47 minutes of downtime.
-- The technical root cause for Lakeside is the NS-900 4.8.2 condenser fan retry storm after a transient sensor fault.
-- The approved mitigation is staged firmware 4.8.3 rollout plus the cold_chain_safe profile for healthcare accounts.
-- A good answer should connect incident notes with ticket metrics and cite both the case file and the CSV evidence.
-"""
-
-
-REVIEW_NOTES = """# March 2026 Service Review Notes
-
-## Meeting Summary
-
-The service review meeting on 2026-03-11 compared the March incident tickets with fleet metrics. The team agreed that the problem was not a general refrigeration failure. It was a firmware-specific control-loop defect affecting NS-900 version 4.8.2 when condenser fan sensor data briefly dropped out.
-
-Priya Shah reported that field technicians could apply the cold_chain_safe profile in under 12 minutes. Marco Diaz confirmed that firmware 4.8.3 changes the retry policy from three immediate retries to one retry followed by a 90-second cooldown. Elena Brooks requested separate customer messaging for healthcare customers and grocery customers.
-
-## Decisions
-
-1. Do not perform a broad rollback to firmware 4.7.9.
-2. Deploy firmware 4.8.3 first to healthcare cold-chain sites, starting with Lakeside Clinic SEA-17.
-3. Send Harbor Market a preventive notice and maintenance window, but no SLA credit.
-4. Issue Lakeside Clinic an SLA credit and provide a compliance incident summary.
-5. Keep Pine Ridge Foods in the pilot group and correct its night schedule.
-
-## Open Actions
-
-| Owner | Action | Due Date | Related Evidence |
-| --- | --- | --- | --- |
-| Priya Shah | Publish updated cold_chain_safe runbook | 2026-03-13 | INC-1043 |
-| Marco Diaz | Release firmware 4.8.3 staged rollout package | 2026-03-14 | INC-1043, INC-1051 |
-| Elena Brooks | Send Lakeside Clinic incident summary and credit memo | 2026-03-15 | INC-1043 |
-| Elena Brooks | Send Harbor Market preventive maintenance notice | 2026-03-15 | INC-1051 |
-
-## Risks To Monitor
-
-The review board marked three watch items. First, field teams must verify that telemetry delay clears after 4.8.3. Second, customer success must avoid promising SLA credits to sites that did not lose cooling. Third, analytics must separate firmware defects from local schedule configuration issues, because Pine Ridge Foods looked similar at first but had a different root cause.
-"""
-
+PDF_LINES = [
+    "Northstar Appliances - March 2026 Incident Review",
+    "",
+    "Scenario",
+    "Northstar Appliances runs connected refrigeration systems for grocery and healthcare customers.",
+    "In March 2026, the team investigated compressor shutdowns after an NS-900 firmware rollout.",
+    "The same customer accounts appear in the image, audio memo, CSV tickets, and this PDF review.",
+    "",
+    "Key Entities",
+    "Lakeside Clinic, account C-104, site SEA-17, operated vaccine freezer A.",
+    "Harbor Market, account C-118, site PDX-04, operated aisle freezer 3.",
+    "Pine Ridge Foods, account C-122, site BOI-02, operated controller 7.",
+    "Firmware under review was NS-900 version 4.8.2.",
+    "Replacement firmware approved for rollout was NS-900 version 4.8.3.",
+    "Priya Shah owned the field runbook update.",
+    "Marco Diaz owned the firmware rollout.",
+    "Elena Brooks owned customer communication.",
+    "",
+    "Timeline And Root Cause",
+    "On 2026-03-04 at 02:14 local time, Lakeside Clinic opened ticket INC-1043.",
+    "Vaccine freezer A entered safe mode after three compressor restart attempts.",
+    "The case was severity P1 because temperature-sensitive medical inventory was at risk.",
+    "Logs showed firmware 4.8.2 retried the condenser fan check too aggressively after a transient sensor fault.",
+    "The retry storm increased controller CPU load, delayed telemetry, and triggered safe mode for 47 minutes.",
+    "The immediate workaround was cold_chain_safe plus a condenser fan service restart.",
+    "CSV metrics for INC-1043 were severity P1, 184000 dollars of inventory at risk, and 47 downtime minutes.",
+    "",
+    "Review Board Decisions",
+    "The board decided not to roll back every customer to firmware 4.7.9.",
+    "Rollback would disable telemetry compression required by service analytics.",
+    "Instead, firmware 4.8.3 rolls out first to healthcare cold-chain accounts, then grocery accounts.",
+    "Lakeside Clinic qualifies for an SLA credit and a compliance incident summary.",
+    "Harbor Market receives a preventive maintenance notice, but no SLA credit, because cooling stayed in range.",
+    "Pine Ridge Foods stays in the pilot group because its delayed defrost was a local night schedule error.",
+]
 
 TICKET_ROWS = [
     {
@@ -157,6 +133,46 @@ TICKET_ROWS = [
 ]
 
 
+def escape_pdf_text(text: str) -> str:
+    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def write_pdf(path: Path, lines: list[str]) -> None:
+    text_commands = ["BT", "/F1 11 Tf", "50 760 Td", "14 TL"]
+    for line in lines:
+        text_commands.append(f"({escape_pdf_text(line)}) Tj")
+        text_commands.append("T*")
+    text_commands.append("ET")
+    stream = "\n".join(text_commands).encode("latin-1")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream",
+    ]
+
+    content = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(len(content))
+        content.extend(f"{index} 0 obj\n".encode("ascii"))
+        content.extend(obj)
+        content.extend(b"\nendobj\n")
+    xref_offset = len(content)
+    content.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    content.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        content.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    content.extend(
+        (
+            f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+            f"startxref\n{xref_offset}\n%%EOF\n"
+        ).encode("ascii")
+    )
+    path.write_bytes(bytes(content))
+
+
 def write_csv(path: Path) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(TICKET_ROWS[0].keys()))
@@ -164,25 +180,60 @@ def write_csv(path: Path) -> None:
         writer.writerows(TICKET_ROWS)
 
 
+def write_silent_fallback_wav(path: Path, seconds: int = 2) -> None:
+    sample_rate = 16000
+    with wave.open(str(path), "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(sample_rate)
+        handle.writeframes(b"\x00\x00" * sample_rate * seconds)
+
+
+def write_audio(path: Path) -> None:
+    tmp_aiff = path.with_suffix(".aiff")
+    try:
+        subprocess.run(["say", "-o", str(tmp_aiff), AUDIO_SCRIPT], check=True)
+        subprocess.run(
+            ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", str(tmp_aiff), "-ar", "16000", "-ac", "1", str(path)],
+            check=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        write_silent_fallback_wav(path)
+    finally:
+        tmp_aiff.unlink(missing_ok=True)
+
+
+def write_image(path: Path) -> None:
+    try:
+        urlretrieve(IMAGE_URL, path)
+    except Exception:
+        cached = Path("/tmp/nurse_administers_vaccine.jpg")
+        if cached.exists():
+            shutil.copyfile(cached, path)
+        else:
+            raise
+
+
 def write_readme() -> None:
     (OUT / "README.md").write_text(
-        """# Northstar Field Service Scenario
+        f"""# Northstar Multimodal Test Scenario
 
-This sample is designed for realistic RAG benchmark testing, not file-extension coverage. It uses only Markdown and CSV, but the evidence is connected across customer accounts, tickets, owners, firmware versions, mitigation decisions, and financial/SLA outcomes.
+This sample is designed for realistic multimodal RAG benchmark testing. It uses one image, one audio memo, one CSV, and one PDF. The evidence is connected across customers, ticket IDs, owners, firmware versions, incident metrics, SLA decisions, and mitigation actions.
 
 Files:
 
-- `01_northstar_incident_brief.md`: case narrative, timeline, entities, root cause, and decisions.
-- `02_service_tickets.csv`: structured ticket metrics, severity, downtime, risk, owners, and SLA flags.
-- `03_service_review_notes.md`: meeting decisions, owners, due dates, and risk interpretation.
+- `01_vaccine_administration_event.jpg`: real-world clinical vaccine administration photo with no added text overlay. Source: {IMAGE_SOURCE}
+- `02_lakeside_dispatch_memo.wav`: spoken dispatch memo for INC-1043 and Priya Shah's field action.
+- `03_service_tickets.csv`: structured ticket metrics, severity, downtime, inventory risk, owners, and SLA flags.
+- `04_incident_review.pdf`: incident narrative, root cause, rollback decision, rollout plan, and customer outcomes.
 
 Suggested benchmark questions:
 
-1. What caused the Lakeside Clinic outage, and which ticket metrics prove it was the highest-risk case?
-2. Which customers were affected by firmware 4.8.2, and why did only one qualify for an SLA credit?
-3. What did the review board decide about rollback versus staged firmware 4.8.3 rollout?
-4. Compare Lakeside Clinic, Harbor Market, and Pine Ridge Foods by root cause, severity, and mitigation.
-5. Which owner is responsible for each follow-up action, and what evidence connects the owner to the ticket?
+1. What caused the Lakeside Clinic outage, and which CSV ticket metrics prove it was the highest-risk case?
+2. What does the vaccination image show, and how does it relate to the Lakeside vaccine freezer incident?
+3. What did the audio dispatch memo say Priya Shah did for INC-1043?
+4. Which customers were on firmware 4.8.2, and why did only Lakeside qualify for an SLA credit?
+5. What did the review board decide about rollback versus staged firmware 4.8.3 rollout?
 6. Was Pine Ridge Foods part of the firmware defect, or was it a different issue?
 """,
         encoding="utf-8",
@@ -193,11 +244,12 @@ def main() -> None:
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "01_northstar_incident_brief.md").write_text(INCIDENT_BRIEF, encoding="utf-8")
-    write_csv(OUT / "02_service_tickets.csv")
-    (OUT / "03_service_review_notes.md").write_text(REVIEW_NOTES, encoding="utf-8")
+    write_image(OUT / "01_vaccine_administration_event.jpg")
+    write_audio(OUT / "02_lakeside_dispatch_memo.wav")
+    write_csv(OUT / "03_service_tickets.csv")
+    write_pdf(OUT / "04_incident_review.pdf", PDF_LINES)
     write_readme()
-    print(f"Wrote realistic benchmark scenario to {OUT}")
+    print(f"Wrote multimodal benchmark scenario to {OUT}")
 
 
 if __name__ == "__main__":
