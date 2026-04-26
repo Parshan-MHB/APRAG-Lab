@@ -3,6 +3,7 @@
 .venv/
 apps/web/dist/
 apps/web/node_modules/
+apps/desktop/node_modules/
 apps/api/.pytest_cache/
 apps/api/data/
 __pycache__/
