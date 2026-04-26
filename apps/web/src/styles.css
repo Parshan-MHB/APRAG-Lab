@@ -26,8 +26,14 @@ a {
   border-radius: 6px;
   display: inline-flex;
   gap: 8px;
+  max-width: 100%;
   min-height: 36px;
-  white-space: nowrap;
+  white-space: normal;
+}
+
+button svg,
+a svg {
+  flex: 0 0 auto;
 }
 
 button {
@@ -59,6 +65,7 @@ a {
 main {
   margin: 0 auto;
   max-width: 1640px;
+  overflow-x: clip;
   padding: 18px;
 }
 
@@ -215,6 +222,7 @@ main {
 
 input[type="file"],
 input[type="text"],
+input:not([type]),
 input[type="search"],
 select,
 textarea {
@@ -302,6 +310,7 @@ form > button[type="submit"] {
   display: flex;
   gap: 8px;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .source-toolbar > span {
@@ -311,7 +320,9 @@ form > button[type="submit"] {
 
 .source-toolbar > div {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  justify-content: flex-end;
 }
 
 .source-group {
@@ -425,9 +436,9 @@ form > button[type="submit"] {
 
 .source-row {
   align-items: center;
-  display: flex;
+  display: grid;
   gap: 8px;
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: 9px 8px;
 }
 
@@ -456,6 +467,13 @@ form > button[type="submit"] {
   flex-direction: column;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.source-row strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ghost {
@@ -531,7 +549,7 @@ form > button[type="submit"] {
 }
 
 .results-panel {
-  min-height: 650px;
+  min-height: 430px;
 }
 
 .tabs {
@@ -670,6 +688,46 @@ form > button[type="submit"] {
   min-height: auto;
   padding: 10px;
   text-align: left;
+  width: 100%;
+}
+
+.history-list {
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.history-row strong,
+.history-row span {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-scroll {
+  max-height: 700px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.settings-grid {
+  margin-bottom: 8px;
+}
+
+.settings-grid div {
+  overflow-wrap: anywhere;
+}
+
+.settings-form {
+  background: #f8fafb;
+  border: 1px solid #d7e1e7;
+  border-radius: 7px;
+  padding: 12px;
 }
 
 .history-row.active {

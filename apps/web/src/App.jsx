@@ -552,7 +552,8 @@ function SettingsPanel({ settings, dependencies, adapters, reliability, provider
     Object.entries({ ...(settings || {}), ...(dependencies || {}) }).filter(([, value]) => isProviderRecord(value)),
   );
   return (
-    <div>
+    <div className="settings-panel">
+      <div className="settings-scroll">
       <div className="settings-grid">
         {Object.entries(merged).map(([name, value]) => (
           <div key={name}>
@@ -685,6 +686,7 @@ function SettingsPanel({ settings, dependencies, adapters, reliability, provider
           ))}
         </ol>
       )}
+      </div>
       <form className="settings-form" onSubmit={(event) => { event.preventDefault(); onSaveSettings(draft); }}>
         <label className="field-label" htmlFor="llm-model">LLM model</label>
         <input id="llm-model" value={draft.llm_model} onChange={(event) => setDraft({ ...draft, llm_model: event.target.value })} />
