@@ -5,6 +5,7 @@
 ![Dockerized](https://img.shields.io/badge/dockerized-app%20stack-0ea5e9)
 ![Ollama](https://img.shields.io/badge/models-Ollama-111827)
 ![Private by default](https://img.shields.io/badge/private%20by%20default-local%20files-7c3aed)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 APRAG-Lab is a local-first multimodal RAG benchmark workspace for teams that need to prove an answer is grounded before they trust it. Upload documents, images, audio, and video; build a searchable knowledge base; run Traditional RAG, Agentic RAG, and Hybrid Graph RAG against the same evidence; then compare the outputs with citations, traces, graph signals, queue progress, metrics, and grounding notes.
 
