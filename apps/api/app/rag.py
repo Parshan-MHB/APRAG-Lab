@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .database import connect
+from .observability import observe_span
 from .providers import ProviderUnavailable, deterministic_mode, provider_registry
 from .reliability import DEFAULT_RERANKED_CHUNKS, DEFAULT_TOP_K_CHUNKS
 
@@ -314,19 +315,30 @@ def retrieve(
     top_k: int = DEFAULT_RERANKED_CHUNKS,
     metadata_filters: dict[str, Any] | None = None,
 ) -> list[RetrievedChunk]:
-    keyword_hits = keyword_retrieve(project_id, question, metadata_filters, limit=max(DEFAULT_TOP_K_CHUNKS, top_k * 2))
-    vector_hits = vector_retrieve(project_id, question, metadata_filters, limit=max(DEFAULT_TOP_K_CHUNKS, top_k * 2))
-    merged: dict[str, RetrievedChunk] = {}
-    for chunk in vector_hits + keyword_hits:
-        existing = merged.get(chunk.id)
-        if existing:
-            existing.vector_score = max(existing.vector_score, chunk.vector_score)
-            existing.keyword_score = max(existing.keyword_score, chunk.keyword_score)
-            existing.score = max(existing.score, chunk.score)
-            existing.grounding_terms = sorted(set(existing.grounding_terms or []).union(chunk.grounding_terms or []))
-        else:
-            merged[chunk.id] = chunk
-    return rerank_evidence(question, list(merged.values()), top_k=top_k)
+    with observe_span(
+        "rag.retrieve",
+        {"project_id": project_id, "top_k": top_k, "question_length": len(question), "metadata_filter_count": len(metadata_filters or {})},
+        {"question": question, "metadata_filters": metadata_filters or {}},
+    ) as span:
+        keyword_hits = keyword_retrieve(project_id, question, metadata_filters, limit=max(DEFAULT_TOP_K_CHUNKS, top_k * 2))
+        vector_hits = vector_retrieve(project_id, question, metadata_filters, limit=max(DEFAULT_TOP_K_CHUNKS, top_k * 2))
+        merged: dict[str, RetrievedChunk] = {}
+        for chunk in vector_hits + keyword_hits:
+            existing = merged.get(chunk.id)
+            if existing:
+                existing.vector_score = max(existing.vector_score, chunk.vector_score)
+                existing.keyword_score = max(existing.keyword_score, chunk.keyword_score)
+                existing.score = max(existing.score, chunk.score)
+                existing.grounding_terms = sorted(set(existing.grounding_terms or []).union(chunk.grounding_terms or []))
+            else:
+                merged[chunk.id] = chunk
+        reranked = rerank_evidence(question, list(merged.values()), top_k=top_k)
+        if span:
+            span.set_attribute("keyword_hit_count", len(keyword_hits))
+            span.set_attribute("vector_hit_count", len(vector_hits))
+            span.set_attribute("merged_hit_count", len(merged))
+            span.set_attribute("reranked_hit_count", len(reranked))
+        return reranked
 
 
 def sentence_candidates(text: str) -> list[str]:

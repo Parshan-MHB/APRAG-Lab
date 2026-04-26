@@ -16,6 +16,7 @@ The product is designed for teams that need to evaluate whether a RAG system is 
 - Compare quality, latency, citations, retrieval coverage, graph usage, and grounding.
 - Show upload and benchmark queue progress in the frontend.
 - Let users inspect source chunks, resolved citations, run traces, and local database dashboards.
+- Publish benchmark spans to OpenTelemetry/Jaeger and Phoenix, with optional LangSmith tracing.
 
 ## Architecture
 
@@ -28,6 +29,8 @@ Docker runs the product shell:
 - `redis-commander`: Redis dashboard
 - `chroma`: vector database, enabled with the `vector` profile
 - `qdrant`: vector database, enabled with the `vector` profile
+- `jaeger`: OpenTelemetry trace dashboard
+- `phoenix`: AI/RAG observability dashboard
 
 The host laptop runs heavy processing:
 
@@ -135,7 +138,7 @@ The first load creates a local benchmark project automatically.
 9. Click Run all RAG flows.
 10. Watch the RAG Flow Queue until Traditional, Agentic, and Hybrid Graph runs finish.
 11. Review the Comparison tab, individual flow tabs, citations, trace data, graph usage, and grounding notes.
-12. Use Settings to inspect provider health, model overrides, missing model pulls, resource profile, and database dashboards.
+12. Use Settings to inspect provider health, model overrides, missing model pulls, resource profile, database dashboards, and monitoring dashboards.
 
 Run exports are available from the API:
 
@@ -153,8 +156,43 @@ http://localhost:8000/api/runs/{run_id}/export.md
 - Chroma API docs: `http://localhost:8001/docs`
 - Qdrant dashboard: `http://localhost:6333/dashboard`
 - Redis Commander: `http://localhost:8083`
+- Jaeger traces: `http://localhost:16686`
+- Phoenix AI observability: `http://localhost:6006`
+- LangSmith project: `https://smith.langchain.com` when `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` are set
 
-The database dashboard buttons are also available in the frontend Settings panel.
+The database and monitoring dashboard buttons are also available in the frontend Settings panel.
+
+## Monitoring And Logs
+
+APRAG-Lab records three levels of benchmark observability:
+
+- In-app traceability: run queue events, per-pipeline Trace Viewer steps, citation resolution, metrics, graph state snapshots, and JSONL trace exports.
+- Local observability: OpenTelemetry spans are exported to Jaeger and Phoenix for API requests, benchmark pipeline runs, retrieval, fusion RAG, LLM calls, VLM calls, and embedding calls.
+- Optional external AI observability: LangSmith tracing can be enabled for teams that already use LangGraph/LangChain monitoring.
+
+Local dashboards:
+
+```text
+http://localhost:16686   Jaeger OpenTelemetry traces
+http://localhost:6006    Phoenix AI/RAG traces
+```
+
+Raw local logs and run trace endpoints:
+
+```text
+http://localhost:8000/api/diagnostics/logs?limit=200
+http://localhost:8000/api/runs/{run_id}/trace.jsonl
+http://localhost:8000/api/runs/{run_id}/trace-events
+http://localhost:8000/api/runs/{run_id}/graph-states
+```
+
+To enable LangSmith, set these environment variables before starting Docker Compose:
+
+```bash
+export LANGSMITH_TRACING=true
+export LANGSMITH_API_KEY=your_langsmith_key
+export LANGSMITH_PROJECT=APRAG-Lab
+```
 
 ## Sample Data
 
@@ -194,6 +232,11 @@ Common environment variables:
 - `RAGBENCH_DEFAULT_OLLAMA_VLM=qwen3-vl:4b`
 - `RAGBENCH_DEFAULT_EMBEDDINGS=bge-m3`
 - `RAGBENCH_DEFAULT_TRANSCRIPTION=faster-whisper:large-v3-turbo`
+- `RAGBENCH_OBSERVABILITY_ENABLED=true|false`
+- `RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces`
+- `LANGSMITH_TRACING=true|false`
+- `LANGSMITH_API_KEY=...`
+- `LANGSMITH_PROJECT=APRAG-Lab`
 
 For normal local use, keep the defaults in `docker-compose.yml`.
 

@@ -176,6 +176,19 @@ const databaseDashboards = {
   ],
 };
 
+const observability = {
+  enabled: true,
+  otel_available: true,
+  otlp_endpoints: ['http://jaeger:4318/v1/traces', 'http://phoenix:6006/v1/traces'],
+  dashboards: [
+    { id: 'jaeger', label: 'Jaeger Traces', url: 'http://localhost:16686' },
+    { id: 'phoenix', label: 'Phoenix AI Observability', url: 'http://localhost:6006' },
+    { id: 'langsmith', label: 'LangSmith Project', url: 'https://smith.langchain.com' },
+  ],
+  langsmith: { enabled: false, api_key_configured: false, project: 'APRAG-Lab' },
+  phoenix: { enabled: true, collector_endpoint: 'http://phoenix:6006/v1/traces' },
+};
+
 function ok(json) {
   return Promise.resolve({ ok: true, json: () => Promise.resolve(json) });
 }
@@ -202,6 +215,7 @@ beforeEach(() => {
     if (url.endsWith('/api/settings/dependencies')) return ok(dependencies);
     if (url.endsWith('/api/settings/adapters')) return ok(adapters);
     if (url.endsWith('/api/settings/database-dashboards')) return ok(databaseDashboards);
+    if (url.endsWith('/api/settings/observability')) return ok(observability);
     if (url.endsWith('/api/settings/reliability')) return ok(reliability);
     if (url.endsWith('/api/settings/provider-health')) return ok(providerHealth);
     if (url.endsWith('/api/settings/resource-profile')) return ok(resourceProfile);

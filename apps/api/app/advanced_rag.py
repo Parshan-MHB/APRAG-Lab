@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Any
 
 from .database import connect
+from .observability import observe_span
 from .rag import RetrievedChunk, retrieve, rerank_evidence, tokenize
 
 ADVANCED_VARIANTS = (
@@ -53,18 +54,28 @@ def fusion_query_variants(question: str, limit: int = 3) -> list[str]:
 
 
 def fusion_retrieve(project_id: str, question: str, filters: dict[str, Any], top_k: int = 8) -> tuple[list[RetrievedChunk], list[str]]:
-    merged: dict[str, RetrievedChunk] = {}
-    variants = fusion_query_variants(question)
-    for variant in variants:
-        for chunk in retrieve(project_id, variant, top_k=top_k, metadata_filters=filters):
-            existing = merged.get(chunk.id)
-            if existing:
-                existing.score = max(existing.score, chunk.score)
-                existing.rerank_score = max(existing.rerank_score, chunk.rerank_score)
-                existing.grounding_terms = sorted(set(existing.grounding_terms or []).union(chunk.grounding_terms or []))
-            else:
-                merged[chunk.id] = chunk
-    return rerank_evidence(question, list(merged.values()), top_k=top_k), variants
+    with observe_span(
+        "rag.fusion_retrieve",
+        {"project_id": project_id, "top_k": top_k, "question_length": len(question), "filter_count": len(filters)},
+        {"question": question, "filters": filters},
+    ) as span:
+        merged: dict[str, RetrievedChunk] = {}
+        variants = fusion_query_variants(question)
+        for variant in variants:
+            for chunk in retrieve(project_id, variant, top_k=top_k, metadata_filters=filters):
+                existing = merged.get(chunk.id)
+                if existing:
+                    existing.score = max(existing.score, chunk.score)
+                    existing.rerank_score = max(existing.rerank_score, chunk.rerank_score)
+                    existing.grounding_terms = sorted(set(existing.grounding_terms or []).union(chunk.grounding_terms or []))
+                else:
+                    merged[chunk.id] = chunk
+        reranked = rerank_evidence(question, list(merged.values()), top_k=top_k)
+        if span:
+            span.set_attribute("query_variant_count", len(variants))
+            span.set_attribute("merged_hit_count", len(merged))
+            span.set_attribute("reranked_hit_count", len(reranked))
+        return reranked, variants
 
 
 def source_summaries(project_id: str) -> list[dict[str, Any]]:

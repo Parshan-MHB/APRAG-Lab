@@ -58,6 +58,7 @@ from .acceptance import no_gap_audit
 from .provider_extensions import extension_settings
 from .provider_health import provider_health
 from .model_bootstrap import installed_models as ollama_installed_models, pull_model as ollama_pull_model, wait_for_ollama
+from .observability import instrument_fastapi, observe_span, observability_status, setup_observability
 from .providers import ollama_model_installed, provider_registry, provider_status
 from .rag import rebuild_project_graph, run_pipeline, split_chunks, tokenize, recommend, compute_comparison
 from .reliability import controlled_timeout_warning, reliability_status
@@ -91,7 +92,9 @@ async def lifespan(_: FastAPI):
     yield
 
 
+setup_observability(os.environ.get("OTEL_SERVICE_NAME", "aprag-lab-api"))
 app = FastAPI(title="RAGBench Studio API", lifespan=lifespan)
+instrument_fastapi(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -326,6 +329,11 @@ def database_dashboards() -> dict[str, Any]:
         "opens_in_new_tab": True,
         "warning": "Dashboards expose local development data and should stay bound to localhost.",
     }
+
+
+@app.get("/api/settings/observability")
+def observability_settings() -> dict[str, Any]:
+    return observability_status()
 
 
 def validate_readonly_sql(sql: str) -> str:
@@ -1570,10 +1578,27 @@ def delete_source(source_id: str) -> dict[str, Any]:
 
 
 def run_pipeline_safely(project_id: str, question: str, pipeline: str, selected_source_ids: list[str]) -> dict[str, Any]:
-    try:
-        return run_pipeline(project_id, question, pipeline, selected_source_ids=selected_source_ids)
-    except Exception as exc:
-        return failure_pipeline_result(pipeline, exc)
+    with observe_span(
+        "rag.pipeline.run",
+        {
+            "project_id": project_id,
+            "pipeline_type": pipeline,
+            "selected_source_count": len(selected_source_ids),
+            "question_length": len(question),
+        },
+        {"question": question, "selected_sources": selected_source_ids},
+    ) as span:
+        try:
+            result = run_pipeline(project_id, question, pipeline, selected_source_ids=selected_source_ids)
+            if span:
+                span.set_attribute("citation_count", len(result.get("citations", [])))
+                span.set_attribute("trace_step_count", len(result.get("trace", [])))
+                span.set_attribute("warning_count", len(result.get("warnings", [])))
+            return result
+        except Exception as exc:
+            if span:
+                span.set_attribute("pipeline_failed", True)
+            return failure_pipeline_result(pipeline, exc)
 
 
 @app.post("/api/projects/{project_id}/runs")

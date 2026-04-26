@@ -558,7 +558,7 @@ function FeedbackPanel({ run, onSave }) {
   );
 }
 
-function SettingsPanel({ settings, dependencies, adapters, reliability, providerHealth, resourceProfile, databaseDashboards, modelPullJob, modelPullEvents, onSaveSettings, onPullModels }) {
+function SettingsPanel({ settings, dependencies, adapters, reliability, providerHealth, resourceProfile, databaseDashboards, observability, modelPullJob, modelPullEvents, onSaveSettings, onPullModels }) {
   const recommended = settings?.recommended_models || {};
   const overrides = settings?.overrides || {};
   const modelManagement = settings?.ollama_model_management || {};
@@ -585,7 +585,7 @@ function SettingsPanel({ settings, dependencies, adapters, reliability, provider
       provider_mode: settings?.overrides?.provider_mode || 'real',
     });
   }, [settings?.overrides, recommended.llm_model, recommended.vlm_model, recommended.embedding_model]);
-  if (!settings && !dependencies && !adapters && !reliability && !providerHealth && !resourceProfile) {
+  if (!settings && !dependencies && !adapters && !reliability && !providerHealth && !resourceProfile && !observability) {
     return <div className="empty-state">Settings are loading or the API is unavailable.</div>;
   }
   const merged = Object.fromEntries(
@@ -653,6 +653,36 @@ function SettingsPanel({ settings, dependencies, adapters, reliability, provider
               <p>{databaseDashboards.warning}</p>
               <div className="export-row dashboard-links">
                 {databaseDashboards.dashboards.map((dashboard) => (
+                  <a href={dashboard.url} key={dashboard.id} target="_blank" rel="noreferrer">
+                    {dashboard.label}
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {observability?.dashboards?.length > 0 && (
+            <section className="settings-section">
+              <h3>Monitoring Tools</h3>
+              <div className="settings-grid compact">
+                <div>
+                  <strong>OpenTelemetry</strong>
+                  <span>{observability.otel_available ? 'exporting traces' : 'configured, waiting for collector'}</span>
+                  <small>{observability.otlp_endpoints?.join(', ') || observability.otel_error || 'No OTLP endpoint configured.'}</small>
+                </div>
+                <div>
+                  <strong>LangSmith</strong>
+                  <span>{observability.langsmith?.enabled ? 'enabled' : 'optional'}</span>
+                  <small>{observability.langsmith?.api_key_configured ? `project: ${observability.langsmith.project}` : 'Set LANGSMITH_TRACING=true and LANGSMITH_API_KEY to publish traces.'}</small>
+                </div>
+                <div>
+                  <strong>Phoenix</strong>
+                  <span>{observability.phoenix?.enabled ? 'collector configured' : 'optional'}</span>
+                  <small>{observability.phoenix?.collector_endpoint}</small>
+                </div>
+              </div>
+              <div className="export-row dashboard-links">
+                {observability.dashboards.map((dashboard) => (
                   <a href={dashboard.url} key={dashboard.id} target="_blank" rel="noreferrer">
                     {dashboard.label}
                   </a>
@@ -874,6 +904,7 @@ export function App() {
   const [dependencies, setDependencies] = useState(null);
   const [adapters, setAdapters] = useState(null);
   const [databaseDashboards, setDatabaseDashboards] = useState(null);
+  const [observability, setObservability] = useState(null);
   const [reliability, setReliability] = useState(null);
   const [providerHealth, setProviderHealth] = useState(null);
   const [resourceProfile, setResourceProfile] = useState(null);
@@ -902,7 +933,7 @@ export function App() {
   async function refreshProject(projectId = project?.id) {
     if (!projectId) return;
     logClientEvent('info', 'workspace_refresh_started', { project_id: projectId });
-    const [summary, sourceList, runList, modelSettings, dependencySettings, adapterSettings, databaseDashboardSettings, reliabilitySettings, providerHealthSettings, resourceProfileSettings] = await Promise.all([
+    const [summary, sourceList, runList, modelSettings, dependencySettings, adapterSettings, databaseDashboardSettings, observabilitySettings, reliabilitySettings, providerHealthSettings, resourceProfileSettings] = await Promise.all([
       api(`/api/projects/${projectId}`),
       api(`/api/projects/${projectId}/sources`),
       api(`/api/projects/${projectId}/runs`),
@@ -910,6 +941,7 @@ export function App() {
       api('/api/settings/dependencies'),
       api('/api/settings/adapters'),
       api('/api/settings/database-dashboards'),
+      api('/api/settings/observability'),
       api('/api/settings/reliability'),
       api('/api/settings/provider-health'),
       api('/api/settings/resource-profile'),
@@ -921,6 +953,7 @@ export function App() {
     setDependencies(dependencySettings);
     setAdapters(adapterSettings);
     setDatabaseDashboards(databaseDashboardSettings);
+    setObservability(observabilitySettings);
     setReliability(reliabilitySettings);
     setProviderHealth(providerHealthSettings);
     setResourceProfile(resourceProfileSettings);
@@ -1384,6 +1417,7 @@ export function App() {
               dependencies={dependencies}
               adapters={adapters}
               databaseDashboards={databaseDashboards}
+              observability={observability}
               reliability={reliability}
               providerHealth={providerHealth}
               resourceProfile={resourceProfile}

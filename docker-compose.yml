@@ -29,6 +29,14 @@ services:
       - RAGBENCH_VECTOR_STORE=chroma
       - RAGBENCH_OLLAMA_NUM_PREDICT=512
       - RAGBENCH_VLM_NUM_PREDICT=256
+      - RAGBENCH_OBSERVABILITY_ENABLED=true
+      - RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
+      - OTEL_SERVICE_NAME=aprag-lab-api
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-APRAG-Lab}
+      - LANGSMITH_ENDPOINT=${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
       - WORKSPACE_ROOT=/workspace
     volumes:
       - ./apps/api:/app
@@ -64,6 +72,14 @@ services:
       - RAGBENCH_VECTOR_STORE=chroma
       - RAGBENCH_OLLAMA_NUM_PREDICT=512
       - RAGBENCH_VLM_NUM_PREDICT=256
+      - RAGBENCH_OBSERVABILITY_ENABLED=true
+      - RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
+      - OTEL_SERVICE_NAME=aprag-lab-worker
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-APRAG-Lab}
+      - LANGSMITH_ENDPOINT=${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
       - WORKSPACE_ROOT=/workspace
     volumes:
       - ./apps/api:/app
@@ -86,6 +102,14 @@ services:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - RAGBENCH_MEDIA_RUNTIME=host
       - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+      - RAGBENCH_OBSERVABILITY_ENABLED=true
+      - RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
+      - OTEL_SERVICE_NAME=aprag-lab-rq-worker
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-APRAG-Lab}
+      - LANGSMITH_ENDPOINT=${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -106,6 +130,14 @@ services:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - RAGBENCH_MEDIA_RUNTIME=host
       - RAGBENCH_HOST_MEDIA_BASE_URL=http://host.docker.internal:8765
+      - RAGBENCH_OBSERVABILITY_ENABLED=true
+      - RAGBENCH_OTEL_EXPORTER_OTLP_ENDPOINTS=http://jaeger:4318/v1/traces,http://phoenix:6006/v1/traces
+      - OTEL_SERVICE_NAME=aprag-lab-celery-worker
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-APRAG-Lab}
+      - LANGSMITH_ENDPOINT=${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -142,6 +174,22 @@ services:
       redis:
         condition: service_healthy
 
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    ports:
+      - "6006:6006"
+      - "4317:4317"
+    volumes:
+      - phoenix:/mnt/data
+
   web:
     build:
       context: ./apps/web
@@ -165,3 +213,4 @@ services:
 volumes:
   qdrant:
   chroma:
+  phoenix:

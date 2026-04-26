@@ -8,6 +8,7 @@ import os
 from .database import init_db
 from .diagnostics import record_job_event
 from .job_execution import CeleryJobRunner, LocalJobRunner, RedisRQJobRunner, fetch_next_queued_job, get_job, job_cancel_requested
+from .observability import setup_observability
 
 try:
     from celery import Celery
@@ -15,6 +16,7 @@ except Exception:  # pragma: no cover - dependency health reports this separatel
     Celery = None
 
 celery_app = Celery("ragbench", broker=os.environ.get("REDIS_URL", "redis://redis:6379/0"), backend=os.environ.get("REDIS_URL", "redis://redis:6379/0")) if Celery else None
+setup_observability(os.environ.get("OTEL_SERVICE_NAME", "aprag-lab-worker"))
 
 RUNNERS = {
     "local": LocalJobRunner,

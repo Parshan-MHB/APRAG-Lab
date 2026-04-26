@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any
 
 from .database import connect, data_dir
-from .providers import DEFAULT_EMBEDDING_MODEL, DEFAULT_OLLAMA_LLM_MODEL, DEFAULT_OLLAMA_VLM_MODEL
 
 SECRET_KEYS = {"api_key", "apikey", "authorization", "password", "secret", "token"}
 
@@ -187,6 +186,7 @@ def read_trace_jsonl(project_id: str, run_id: str) -> str:
 def dependency_status() -> dict[str, Any]:
     from .provider_health import provider_health
     from .host_media import host_media_base_url, host_media_enabled
+    from .providers import DEFAULT_EMBEDDING_MODEL, DEFAULT_OLLAMA_LLM_MODEL, DEFAULT_OLLAMA_VLM_MODEL
 
     ffmpeg = shutil.which("ffmpeg")
     tesseract = shutil.which("tesseract")

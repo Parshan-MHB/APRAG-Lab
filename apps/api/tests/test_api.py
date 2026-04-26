@@ -1290,6 +1290,13 @@ def test_database_dashboards_expose_local_query_tools():
     assert by_id["redis"]["url"] == "http://localhost:8083"
     assert all(item["queryable"] is True for item in dashboards)
 
+    observability = client.get("/api/settings/observability").json()
+    observability_by_id = {item["id"]: item for item in observability["dashboards"]}
+    assert observability_by_id["jaeger"]["url"] == "http://localhost:16686"
+    assert observability_by_id["phoenix"]["url"] == "http://localhost:6006"
+    assert observability_by_id["langsmith"]["external"] is True
+    assert observability["langsmith"]["project"]
+
     query = client.get("/api/database/sqlite-query", params={"sql": "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"})
     blocked = client.get("/api/database/sqlite-query", params={"sql": "DELETE FROM projects"})
 

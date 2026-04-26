@@ -13,6 +13,7 @@ from typing import Any, Callable
 
 from pydantic import BaseModel
 
+from .observability import observe_span
 from .resource_profile import selected_profile
 
 _DEFAULT_PROFILE = selected_profile()
@@ -141,21 +142,29 @@ class OllamaAdapter:
         return {"available": True, "model": self.model}
 
     def generate(self, prompt: str, options: dict[str, Any] | None = None) -> ProviderResult:
-        validation = self.validate_model()
-        if not validation["available"]:
-            raise ProviderUnavailable(validation["warning"])
-        payload = ollama_generation_payload(self.model, prompt)
-        payload["options"] = {**ollama_generation_options(), **(options or {})}
-        body = self.transport(
-            f"{self.base_url}/api/generate",
-            payload,
-            self.timeout,
-        )
-        text = body.get("response", "")
-        warnings = []
-        if not text and body.get("thinking"):
-            warnings.append("Ollama returned only thinking content; enable final-answer generation or increase model budget.")
-        return ProviderResult(provider=self.provider, model=self.model, text=text, warnings=warnings, metadata={"done_reason": body.get("done_reason")})
+        with observe_span(
+            "llm.generate",
+            {"provider": self.provider, "model": self.model, "prompt_length": len(prompt)},
+            {"prompt_preview": prompt[:500]},
+        ) as span:
+            validation = self.validate_model()
+            if not validation["available"]:
+                raise ProviderUnavailable(validation["warning"])
+            payload = ollama_generation_payload(self.model, prompt)
+            payload["options"] = {**ollama_generation_options(), **(options or {})}
+            body = self.transport(
+                f"{self.base_url}/api/generate",
+                payload,
+                self.timeout,
+            )
+            text = body.get("response", "")
+            warnings = []
+            if not text and body.get("thinking"):
+                warnings.append("Ollama returned only thinking content; enable final-answer generation or increase model budget.")
+            if span:
+                span.set_attribute("response_length", len(text))
+                span.set_attribute("done_reason", body.get("done_reason") or "")
+            return ProviderResult(provider=self.provider, model=self.model, text=text, warnings=warnings, metadata={"done_reason": body.get("done_reason")})
 
     def generate_structured(self, prompt: str, schema: dict[str, Any], options: dict[str, Any] | None = None) -> dict[str, Any]:
         result = self.generate(f"{prompt}\nReturn JSON matching this schema:\n{json.dumps(schema)}", options=options)
@@ -195,30 +204,37 @@ class OllamaVLMAdapter(OllamaAdapter):
         super().__init__(model=model, **kwargs)
 
     def inspect_image(self, source_id: str, frame_or_image_id: str | None, image_path: Path, question: str) -> VisualObservation:
-        validation = self.validate_model()
-        if not validation["available"]:
-            raise ProviderUnavailable(validation["warning"])
-        if not image_path.exists():
-            raise ProviderUnavailable(f"Image artifact does not exist: {image_path}")
-        encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
-        body = self.transport(
-            f"{self.base_url}/api/generate",
-            {
-                **ollama_generation_payload(self.model, f"Question: {question}", images=[encoded]),
-                "options": ollama_generation_options("RAGBENCH_VLM"),
-            },
-            self.timeout,
-        )
-        result = ProviderResult(provider=self.provider, model=self.model, text=body.get("response", ""))
-        return VisualObservation(
-            source_id=source_id,
-            frame_or_image_id=frame_or_image_id,
-            question=question,
-            visual_answer=result.text,
-            confidence=0.6,
-            provider=self.provider,
-            model=self.model,
-        )
+        with observe_span(
+            "vlm.inspect_image",
+            {"provider": self.provider, "model": self.model, "source_id": source_id, "frame_or_image_id": frame_or_image_id or ""},
+            {"question": question, "image_path": str(image_path)},
+        ) as span:
+            validation = self.validate_model()
+            if not validation["available"]:
+                raise ProviderUnavailable(validation["warning"])
+            if not image_path.exists():
+                raise ProviderUnavailable(f"Image artifact does not exist: {image_path}")
+            encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+            body = self.transport(
+                f"{self.base_url}/api/generate",
+                {
+                    **ollama_generation_payload(self.model, f"Question: {question}", images=[encoded]),
+                    "options": ollama_generation_options("RAGBENCH_VLM"),
+                },
+                self.timeout,
+            )
+            result = ProviderResult(provider=self.provider, model=self.model, text=body.get("response", ""))
+            if span:
+                span.set_attribute("response_length", len(result.text))
+            return VisualObservation(
+                source_id=source_id,
+                frame_or_image_id=frame_or_image_id,
+                question=question,
+                visual_answer=result.text,
+                confidence=0.6,
+                provider=self.provider,
+                model=self.model,
+            )
 
 
 class DeterministicEmbeddingAdapter:
@@ -241,11 +257,12 @@ class OllamaEmbeddingAdapter(OllamaAdapter):
         super().__init__(model=model, **kwargs)
 
     def embed_text(self, text: str) -> list[float]:
-        validation = self.validate_model()
-        if not validation["available"]:
-            raise ProviderUnavailable(validation["warning"])
-        body = self.transport(f"{self.base_url}/api/embeddings", {"model": self.model, "prompt": text}, self.timeout)
-        return body.get("embedding", [])
+        with observe_span("embedding.embed_text", {"provider": self.provider, "model": self.model, "text_length": len(text)}):
+            validation = self.validate_model()
+            if not validation["available"]:
+                raise ProviderUnavailable(validation["warning"])
+            body = self.transport(f"{self.base_url}/api/embeddings", {"model": self.model, "prompt": text}, self.timeout)
+            return body.get("embedding", [])
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
         return [self.embed_text(text) for text in texts]

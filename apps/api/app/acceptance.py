@@ -66,6 +66,7 @@ def no_gap_audit(repo_root: Path | None = None) -> dict[str, Any]:
         "prompt_template_files_present": files["prompt_dir"].exists() and len(list(files["prompt_dir"].glob("*_v1.txt"))) >= 8,
         "stable_api_export_contracts_present": "export.json" in readme_text,
         "privacy_non_goals_enforced": files["api_agentic"].exists() and health.get("telemetry_enabled", False) is False,
+        "post_audit_epics_tracked": REQUIRED_EPICS == list(range(23, 51)) and "Monitoring And Logs" in readme_text,
     }
     traceability = {
         section: {
