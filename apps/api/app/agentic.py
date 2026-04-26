@@ -475,18 +475,22 @@ def should_use_graph_agent(question: str) -> bool:
 def retrieval_agent(state: AgentState, registry: ToolRegistry) -> tuple[EvidencePackage, list[RetrievedChunk]]:
     state.specialists_used.append("Retrieval Agent")
     vector_hits = registry.call("search_vector_store", query=state.question, filters=state.filters, top_k=8)
-    keyword_hits = registry.call("search_keyword_index", query=state.question, filters=state.filters, top_k=8)
-    merged = {chunk.id: chunk for chunk in vector_hits}
-    for chunk in keyword_hits:
-        existing = merged.get(chunk.id)
-        if existing:
-            existing.keyword_score = max(existing.keyword_score, chunk.keyword_score)
-        else:
-            merged[chunk.id] = chunk
-    reranked = registry.call("rerank_evidence", question=state.question, retrieved_chunks=list(merged.values()))
+    inspected_chunks = []
+    for chunk in vector_hits[:3]:
+        inspected = registry.call("inspect_chunk", chunk_id=chunk.id)
+        if inspected:
+            inspected_chunks.append({"chunk_id": chunk.id, "source_id": chunk.source_id, "citation": chunk.citation})
+    state.trace.append(
+        {
+            "step": "inspect_retrieved_chunks",
+            "detail": f"Inspected {len(inspected_chunks)} top vector hits before orchestration.",
+            "inspected_chunks": inspected_chunks,
+        }
+    )
+    reranked = registry.call("rerank_evidence", question=state.question, retrieved_chunks=vector_hits)
     package = EvidencePackage(
         agent_name="Retrieval Agent",
-        task="Find textual, OCR, caption, and transcript evidence.",
+        task="Use bounded vector-store search, then inspect top chunks before handing evidence to the orchestrator.",
         query_used=state.question,
         evidence_items=chunks_to_items(reranked),
         citations=citations_from_chunks(reranked),
@@ -639,7 +643,7 @@ def run_agentic_pipeline(
         state.step("dispatch_graph_agent_if_needed", "Graph Agent returned an evidence package.", package=graph_package.model_dump())
 
     evidence = rerank_evidence(question, [*retrieved_chunks, *visual_chunks], top_k=AGENT_LIMITS["max_chunks_in_context"])
-    answer, citations, answer_warnings, report = synthesize_answer(question, evidence)
+    answer, citations, answer_warnings, report = synthesize_answer(question, evidence, answer_mode="agentic")
     state.warnings.extend(warning for warning in answer_warnings if warning not in state.warnings)
 
     critic_package = critic_agent(state, registry, answer, citations, evidence)
@@ -679,6 +683,14 @@ def run_agentic_pipeline(
             "prompt_token_estimate": len(question_terms(question)) + sum(len(item.text.split()) for package in packages for item in package.evidence_items),
             "answer_length": len(final["answer"]),
             "source_coverage_count": len({citation.get("source_id") for citation in final["citations"] if citation.get("source_id")}),
+            "collection_strategy": "bounded_agent_tool_collection",
+            "data_collection_techniques": [
+                "orchestrator_planned_tools",
+                "vector_tool_search",
+                "chunk_inspection",
+                "specialist_evidence_packages",
+                "critic_review",
+            ],
         },
         "techniques": [
             "agentic_orchestrator",

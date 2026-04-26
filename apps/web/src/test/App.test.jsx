@@ -377,6 +377,35 @@ describe('APRAG-Lab UI', () => {
     ));
   });
 
+  it('keeps benchmark submission disabled while source extraction is active', async () => {
+    global.fetch = vi.fn((url, options = {}) => {
+      const processingProject = { ...project, processing_status: 'processing' };
+      const queuedSources = [{ ...sources[0], status: 'queued' }];
+      if (url.endsWith('/health')) return ok({ status: 'ok' });
+      if (url.endsWith('/api/projects') && !options.method) return ok([processingProject]);
+      if (url.endsWith('/api/projects/p1')) return ok(processingProject);
+      if (url.endsWith('/api/projects/p1/sources')) return ok(queuedSources);
+      if (url.endsWith('/api/projects/p1/runs') && !options.method) return ok([{ ...runSummary, job_status: 'queued' }]);
+      if (url.endsWith('/api/settings/models')) return ok(settings);
+      if (url.endsWith('/api/settings/dependencies')) return ok(dependencies);
+      if (url.endsWith('/api/settings/adapters')) return ok(adapters);
+      if (url.endsWith('/api/settings/database-dashboards')) return ok(databaseDashboards);
+      if (url.endsWith('/api/settings/observability')) return ok(observability);
+      if (url.endsWith('/api/settings/reliability')) return ok(reliability);
+      if (url.endsWith('/api/settings/provider-health')) return ok(providerHealth);
+      if (url.endsWith('/api/settings/resource-profile')) return ok(resourceProfile);
+      return ok({});
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await screen.findByText('Waiting for extraction');
+    await user.type(screen.getByLabelText('Question'), 'What does authentication use?');
+
+    expect(screen.getByRole('button', { name: /Waiting for extraction/i })).toBeDisabled();
+    expect(screen.getAllByText(/queued ·/i).length).toBeGreaterThan(0);
+  });
+
   it('submits runs with selected sources and follow-up mode', async () => {
     const user = userEvent.setup();
     render(<App />);

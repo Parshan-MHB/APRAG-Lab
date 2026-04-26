@@ -5,7 +5,7 @@ from typing import Any
 
 from .agentic import AgentState, ToolRegistry, should_use_visual_agent
 from .database import connect
-from .rag import RetrievedChunk, grounding_report, retrieve, rerank_evidence, synthesize_answer, tokenize
+from .rag import RetrievedChunk, grounding_report, rerank_evidence, synthesize_answer, tokenize, vector_retrieve
 
 
 def extract_query_entities(project_id: str, question: str) -> list[dict[str, Any]]:
@@ -152,7 +152,7 @@ def targeted_visual_check_if_needed(
 
 
 def verify_grounding_and_revise(question: str, chunks: list[RetrievedChunk]) -> tuple[str, list[dict[str, Any]], list[str], dict[str, Any]]:
-    answer, citations, warnings, report = synthesize_answer(question, chunks)
+    answer, citations, warnings, report = synthesize_answer(question, chunks, answer_mode="hybrid_graph")
     if report["insufficient_evidence"]:
         return (
             "I could not find enough graph-grounded evidence in the uploaded sources to answer this question.",
@@ -162,7 +162,7 @@ def verify_grounding_and_revise(question: str, chunks: list[RetrievedChunk]) -> 
         )
     if report["unsupported_claims_count"]:
         warnings = sorted(set([*warnings, "answer_revised_to_cited_evidence_only"]))
-        answer, citations, _, report = synthesize_answer(question, chunks[:3])
+        answer, citations, _, report = synthesize_answer(question, chunks[:3], answer_mode="hybrid_graph")
     return answer, citations, warnings, report
 
 
@@ -179,9 +179,6 @@ def run_hybrid_graph_pipeline(
     entities = extract_query_entities(project_id, question)
     trace.append({"step": "extract_query_entities", "detail": "Matched query terms to stored graph entities.", "entities": entities})
 
-    retrieved = retrieve(project_id, question, top_k=8, metadata_filters=filters)
-    trace.append({"step": "retrieve_vector_candidates", "detail": f"Retrieved {len(retrieved)} vector/keyword candidates."})
-
     graph_chunks = graph_expand_entities(project_id, entities, filters=filters)
     trace.append(
         {
@@ -191,7 +188,11 @@ def run_hybrid_graph_pipeline(
         }
     )
 
-    selected = combined_vector_graph_rerank(question, retrieved, graph_chunks, top_k=8)
+    vector_backfill_limit = max(2, 8 - len(graph_chunks))
+    vector_backfill = vector_retrieve(project_id, question, metadata_filters=filters, limit=vector_backfill_limit)
+    trace.append({"step": "vector_backfill_candidates", "detail": f"Retrieved {len(vector_backfill)} vector-only backfill candidates after graph expansion."})
+
+    selected = combined_vector_graph_rerank(question, vector_backfill, graph_chunks, top_k=8)
     trace.append({"step": "rerank_combined_evidence", "detail": f"Selected {len(selected)} combined evidence chunks."})
 
     visual_observations, visual_warnings, vlm_calls = targeted_visual_check_if_needed(project_id, question, selected)
@@ -230,6 +231,7 @@ def run_hybrid_graph_pipeline(
             "warnings_count": len(warnings),
             "query_entities_count": len(entities),
             "graph_chunks_count": len(graph_chunks),
+            "vector_backfill_count": len(vector_backfill),
             "combined_evidence_count": len(selected),
             "vlm_calls": vlm_calls,
             "visual_observations_count": len(visual_observations),
@@ -240,12 +242,20 @@ def run_hybrid_graph_pipeline(
             "prompt_token_estimate": len(tokenize(question)) + sum(len(tokenize(chunk.text)) for chunk in selected),
             "answer_length": len(answer),
             "source_coverage_count": len({citation.get("source_id") for citation in citations if citation.get("source_id")}),
+            "collection_strategy": "graph_first_relationship_expansion",
+            "data_collection_techniques": [
+                "graph_entity_matching",
+                "relationship_expansion",
+                "graph_boosted_reranking",
+                "vector_backfill",
+                "targeted_visual_check",
+            ],
         },
         "techniques": [
-            "vector_search",
             "entity_extraction",
             "relationship_extraction",
             "graph_expansion",
+            "vector_backfill",
             "combined_vector_graph_reranking",
             "targeted_visual_check",
             "grounding_verification",
