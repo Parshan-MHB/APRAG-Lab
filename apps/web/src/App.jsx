@@ -654,7 +654,7 @@ function SettingsPanel({ settings, dependencies, adapters, reliability, provider
         </div>
       ) : (
         <div className="settings-info" role="tabpanel">
-          <details open>
+          <details>
             <summary>Provider Availability</summary>
             <div className="settings-grid">
               {Object.entries(merged).map(([name, value]) => (

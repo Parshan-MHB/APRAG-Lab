@@ -774,18 +774,38 @@ form > button[type="submit"] {
   background: #f8fafb;
   border: 1px solid #d7e1e7;
   border-radius: 7px;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .settings-info summary {
+  align-items: center;
   cursor: pointer;
+  display: flex;
   font-weight: 700;
-  list-style-position: inside;
-  padding: 10px 12px;
+  gap: 8px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 42px;
+  padding: 9px 12px;
+}
+
+.settings-info summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-info summary::after {
+  color: #70808b;
+  content: "Open";
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .settings-info details[open] summary {
   border-bottom: 1px solid #d7e1e7;
+}
+
+.settings-info details[open] summary::after {
+  content: "Close";
 }
 
 .settings-grid {
