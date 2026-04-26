@@ -7,6 +7,6 @@
     "smoke": "node main.js --smoke"
   },
   "dependencies": {
-    "electron": "^35.0.0"
+    "electron": "^41.3.0"
   }
 }
