@@ -12,7 +12,7 @@ APRAG-Lab is a local-first multimodal RAG benchmark workspace for teams that nee
 
 The product is designed for teams that need to evaluate whether a RAG system is really grounded in source material before using it in production. It solves the repeated setup problem by keeping the app, queue, metadata store, and vector databases in Docker, while running heavy model and media processing on the host laptop where Ollama, FFmpeg, OCR, and transcription can use the machine's native resources.
 
-![APRAG-Lab multimodal RAG benchmark flow](assets/aprag-lab-rag-flow-diagram.svg)
+![APRAG-Lab multimodal RAG benchmark flow](assets/aprag-lab-rag-flow-diagram.svg?v=2)
 
 ## Why APRAG-Lab
 
