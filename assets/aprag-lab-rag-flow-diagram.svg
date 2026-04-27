@@ -36,17 +36,18 @@
   <g transform="translate(74 156)" filter="url(#shadow)">
     <rect width="186" height="370" rx="18" fill="#FFFFFF" stroke="#CBD5E1"/>
     <text x="22" y="38" class="small">INPUTS</text>
-    <text x="22" y="73" class="label">Multimodal sources</text>
-    <rect x="22" y="98" width="142" height="38" rx="10" fill="#ECFEFF" stroke="#67E8F9"/>
-    <text x="40" y="122" class="pill">PDF / DOCX</text>
-    <rect x="22" y="148" width="142" height="38" rx="10" fill="#F0FDF4" stroke="#86EFAC"/>
-    <text x="40" y="172" class="pill">CSV / JSON</text>
-    <rect x="22" y="198" width="142" height="38" rx="10" fill="#FEF3C7" stroke="#FCD34D"/>
-    <text x="40" y="222" class="pill">Images</text>
-    <rect x="22" y="248" width="142" height="38" rx="10" fill="#FCE7F3" stroke="#F9A8D4"/>
-    <text x="40" y="272" class="pill">Audio</text>
-    <rect x="22" y="298" width="142" height="38" rx="10" fill="#EEF2FF" stroke="#A5B4FC"/>
-    <text x="40" y="322" class="pill">Video</text>
+    <text x="22" y="70" class="label">Multimodal</text>
+    <text x="22" y="92" class="label">sources</text>
+    <rect x="22" y="116" width="142" height="38" rx="10" fill="#ECFEFF" stroke="#67E8F9"/>
+    <text x="40" y="140" class="pill">PDF / DOCX</text>
+    <rect x="22" y="164" width="142" height="38" rx="10" fill="#F0FDF4" stroke="#86EFAC"/>
+    <text x="40" y="188" class="pill">CSV / JSON</text>
+    <rect x="22" y="212" width="142" height="38" rx="10" fill="#FEF3C7" stroke="#FCD34D"/>
+    <text x="40" y="236" class="pill">Images</text>
+    <rect x="22" y="260" width="142" height="38" rx="10" fill="#FCE7F3" stroke="#F9A8D4"/>
+    <text x="40" y="284" class="pill">Audio</text>
+    <rect x="22" y="308" width="142" height="38" rx="10" fill="#EEF2FF" stroke="#A5B4FC"/>
+    <text x="40" y="332" class="pill">Video</text>
   </g>
 
   <g transform="translate(307 156)" filter="url(#shadow)">
