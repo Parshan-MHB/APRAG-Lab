@@ -7,7 +7,7 @@ python-docx==1.1.2
 pytest==9.0.3
 httpx==0.28.1
 redis==7.4.0
-rq==2.1.0
+rq==2.8.0
 celery==5.4.0
 chromadb==0.6.3
 qdrant-client==1.12.2
